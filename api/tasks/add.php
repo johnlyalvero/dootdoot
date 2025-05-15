@@ -4,7 +4,7 @@ require_once '../config.php';  // contiene $pdo e session_start()
 // Verifica se l'utente è autenticato
 session_start();
 $user_id = $_SESSION['user_id'] ?? null;
-if (!$user_id) {
+if (!$user_id) { 
     http_response_code(401);
     echo json_encode(['error' => 'Utente non autenticato']);
     exit;
@@ -21,7 +21,6 @@ if (!$title || !$due_date) {
     exit;
 }
 
-// Controlla se la data è valida
 $stmt = $pdo->prepare("INSERT INTO tasks (user_id, title, description, due_date, is_test) 
                        VALUES (?, ?, ?, ?, ?)");
 $stmt->execute([$user_id, $title, $desc, $due_date, $is_test]);
