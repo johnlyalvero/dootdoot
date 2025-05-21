@@ -1,0 +1,201 @@
+⸻
+
+Doot Doot – Web App per Studenti
+
+🎯 Vision
+
+Doot Doot è un’applicazione pensata per aiutare gli studenti a organizzare i propri impegni scolastici, come compiti, test e sessioni di studio.
+Include un sistema di feedback post-sessione, statistiche personali, e una to-do list giornaliera, con l’obiettivo di migliorare la produttività e l’autoconsapevolezza nello studio.
+
+⸻
+
+🛠️ Stack Tecnologico
+
+Componente	Tecnologia
+Frontend	HTML5, CSS3, JavaScript Vanilla
+Styling	CSS custom + Bootstrap 5 (lightweight)
+Backend API	PHP 8.x (modulare, REST-like)
+Database	MySQL via XAMPP (phpMyAdmin)
+Mobile wrapper	Apache Cordova
+Hosting dev	XAMPP localhost
+Interazioni	Fetch API (AJAX)
+
+
+⸻
+
+📁 Struttura del Progetto
+
+dootdoot-main/
+├── api/
+│   ├── auth/               # Login, registrazione, profilo
+│   ├── tasks/              # Gestione Task, Test
+│   ├── sessions/           # Gestione sessioni studio e timer
+│   ├── stats/              # Calcolo e recupero statistiche
+│   ├── feedback/           # Feedback post-sessione
+│   └── config.php          # Connessione database
+│
+├── sql/
+│   └── script.sql          # Creazione schema database
+│
+├── www/
+│   ├── assets/
+│   │   ├── css/
+│   │   ├── js/
+│   │   └── img/
+│   ├── pages/
+│   │   ├── login.html
+│   │   ├── register.html
+│   │   ├── profile.html
+│   │   └── ...
+│   └── index.html
+│
+├── config.xml              # Configurazione Cordova
+├── package.json
+└── .gitignore
+
+
+⸻
+
+🔄 Architettura Logica e Flusso Utente
+	1.	Login / Registrazione
+	2.	Dashboard:
+	•	To-Do giornaliero
+	•	Timer di studio
+	•	Statistiche rapide
+	3.	Moduli navigabili:
+	•	Task & Verifiche
+	•	Sessioni di Studio
+	•	Feedback
+	•	Statistiche complete
+	•	Profilo utente
+
+⸻
+
+🧱 Schema Database (Estratto da sql/script.sql)
+
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    scuola VARCHAR(100),
+    classe VARCHAR(20),
+    immagine_profilo VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE tasks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    title VARCHAR(100),
+    description TEXT,
+    due_date DATE,
+    is_test BOOLEAN DEFAULT 0,
+    completed BOOLEAN DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE study_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    start_time DATETIME,
+    end_time DATETIME,
+    duration_minutes INT,
+    notes TEXT,
+    focus_score TINYINT,
+    discipline_score TINYINT,
+    efficiency_score TINYINT,
+    dedication_score TINYINT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE user_stats (
+    user_id INT PRIMARY KEY,
+    total_sessions INT DEFAULT 0,
+    avg_focus FLOAT DEFAULT 0,
+    avg_discipline FLOAT DEFAULT 0,
+    avg_efficiency FLOAT DEFAULT 0,
+    avg_dedication FLOAT DEFAULT 0,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+
+⸻
+
+✨ Funzionalità Principali
+
+1. Autenticazione
+	•	Sign Up: username, password, scuola, classe, immagine profilo
+	•	Login: accesso con credenziali e sessione attiva
+
+2. Gestione Compiti e Test
+	•	Inserimento task scolastici e verifiche con scadenza
+	•	Creazione automatica di 4 sessioni di studio se viene creato un test
+
+3. Visualizzazione Organizzata
+	•	Task ordinati per scadenza
+	•	Test con relative sessioni di studio visualizzate
+
+4. To-Do Giornaliero
+	•	Elenco delle attività del giorno: task incompleti e sessioni previste
+
+5. Focus Timer
+	•	Timer da 25 min a 2 ore collegabile a task o sessioni
+
+6. Feedback Post-Sessione
+	•	Sondaggio con focus, utilità, distrazioni, sicurezza, metodo, note personali
+
+7. Statistiche Utente
+	•	Focus: media concentrazione
+	•	Disciplina: adempimento scadenze
+	•	Efficienza: qualità/tempo
+	•	Dedizione: frequenza e costanza
+
+⸻
+
+🚀 Product Backlog
+
+EPIC 1 – Autenticazione e Profilo Utente
+	•	US1 – Registrazione Studente
+	•	US2 – Login
+	•	US3 – Visualizzazione profilo
+
+EPIC 2 – Task, Test e Sessioni
+	•	US4 – Creazione task/test con sessioni automatiche
+	•	US5 – Visualizzazione organizzata
+	•	US6 – Modifica task/test/sessioni
+
+EPIC 3 – To-Do e Timer
+	•	US7 – To-Do Giornaliero
+	•	US8 – Timer Studio
+
+EPIC 4 – Feedback e Statistiche
+	•	US9 – Feedback post-sessione
+	•	US10 – Visualizzazione statistiche
+	•	US11 – Calcolo automatico metriche
+
+EPIC 5 – Persistenza
+	•	US12 – Salvataggio dati in MySQL
+
+⸻
+
+🧠 Idee Future
+	•	Integrazione dei voti nelle statistiche di efficienza
+	•	Calendario stile GitHub per visualizzare la dedizione settimanale
+
+⸻
+
+📌 Stato del Progetto
+
+Modulo	Stato
+Registrazione/Login	✅ Pronto
+Profilo	✅ Pronto
+Gestione Task/Test	 🔜 In sviluppo
+Visualizzazione contenuti	🔜 In sviluppo
+Timer e To-Do	🔜 In sviluppo
+Feedback e Statistiche	🔜 In sviluppo
+
+
+⸻
