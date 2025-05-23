@@ -1,50 +1,76 @@
 <?php
-require_once '../config.php';
+/**
+ * register.php
+ *
+ * API per la registrazione di un nuovo utente.
+ * Riceve dati in JSON: username, password, scuola, classe.
+ * Inserisce l'utente nella tabella `users` con password hashata.
+ */
 
-// Validazione e sanitizzazione
-$username = trim($_POST['username'] ?? '');
-$password = $_POST['password'] ?? '';
-$school = trim($_POST['school'] ?? '');
-$class = trim($_POST['class'] ?? '');
-$profile_img = $_FILES['profile_img'] ?? null;
+header('Content-Type: application/json');
 
-if (!$username || !$password || !$school || !$class || !$profile_img) {
+// Includo la configurazione e connessione PDO
+require_once __DIR__ . './../config.php';
+
+// Leggo il payload JSON inviato dal client
+$input = json_decode(file_get_contents('php://input'), true);
+
+// Controllo che il JSON sia valido
+if (!$input) {
     http_response_code(400);
-    echo json_encode(['error' => 'Compila tutti i campi']);
+    echo json_encode(['error' => 'JSON non valido']);
     exit;
 }
 
-// Check se utente esiste
-$stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
-$stmt->execute([$username]);
-if ($stmt->fetch()) {
-    http_response_code(409);
-    echo json_encode(['error' => 'Username già in uso']);
+// Definisco campi obbligatori
+$required = ['username', 'password', 'school', 'class'];
+foreach ($required as $field) {
+    if (empty($input[$field])) {
+        http_response_code(422);
+        echo json_encode(['error' => "Campo '$field' mancante"]);
+        exit;
+    }
+}
+
+// Sanitizzo e assegno le variabili
+$username = trim($input['username']);
+$password = $input['password'];
+$school   = trim($input['school']);
+$class    = trim($input['class']);
+
+// Verifico che lo username non esista già
+try {
+    $stmt = $pdo->prepare('SELECT id FROM users WHERE username = ?');
+    $stmt->execute([$username]);
+    if ($stmt->fetch()) {
+        http_response_code(409);
+        echo json_encode(['error' => 'Username già esistente']);
+        exit;
+    }
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Errore verifica username']);
     exit;
 }
 
 // Hash della password
-$hashed = password_hash($password, PASSWORD_BCRYPT);
+$passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
-// Salva immagine profilo (opzionale)
-$imgPath = 'uploads/default.png';  // Fallback
-if ($profile_img && $profile_img['error'] === UPLOAD_ERR_OK) {
-    $ext = pathinfo($profile_img['name'], PATHINFO_EXTENSION);
-    $imgPath = 'uploads/' . uniqid() . '.' . $ext;
-    move_uploaded_file($profile_img['tmp_name'], '../../www/assets/img/' . $imgPath);
+// Inserisco il nuovo utente nel database
+try {
+    $insert = $pdo->prepare(
+        'INSERT INTO users (username, password_hash, school, class) VALUES (?, ?, ?, ?)'
+    );
+    $insert->execute([$username, $passwordHash, $school, $class]);
+
+    // Ritorno l'ID del nuovo utente
+    echo json_encode([
+        'success' => true,
+        'user_id' => $pdo->lastInsertId()
+    ]);
+    exit;
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Registrazione fallita']);
+    exit;
 }
-
-// Inserisci nel DB
-$stmt = $pdo->prepare("INSERT INTO users (username, email, password_hash, school, class, profile_img) 
-                       VALUES (?, ?, ?, ?, ?, ?)");
-$stmt->execute([
-    $username,
-    $username . '@doot.local', // email fittizia per ora
-    $hashed,
-    $school,
-    $class,
-    $imgPath
-]);
-
-echo json_encode(['success' => true]);
-?>
