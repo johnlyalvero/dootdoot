@@ -1,3 +1,4 @@
+<?php
 // -----------------------------------------------------------------------------
 // File: /api/sessions/update.php
 // API per aggiornare una sessione di studio.
@@ -5,7 +6,7 @@
 // discipline_score, efficiency_score, dedication_score, notes).
 // -----------------------------------------------------------------------------
 header('Content-Type: application/json');
-require_once __DIR__ . '/../auth/config.php';
+require_once __DIR__ . '/../config.php';
 session_start();
 
 if (empty($_SESSION['user_id'])) {

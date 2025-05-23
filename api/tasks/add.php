@@ -8,7 +8,7 @@
  */
 
 header('Content-Type: application/json');
-require_once __DIR__ . './../config.php';
+require_once __DIR__ . '/../config.php';
 session_start();
 
 // Verifica sessione utente
@@ -29,9 +29,9 @@ if (!$input || empty($input['title']) || empty($input['due_date'])) {
 // Sanitizzazione campi
 $userId      = $_SESSION['user_id'];
 $title       = trim($input['title']);
-description = !empty($input['description']) ? trim($input['description']) : null;
+$description = !empty($input['description']) ? trim($input['description']) : null;
 $dueDate     = $input['due_date'];
-isTest       = !empty($input['is_test']) ? 1 : 0;
+$isTest       = !empty($input['is_test']) ? 1 : 0;
 
 try {
     // Inserimento task/test

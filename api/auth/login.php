@@ -9,7 +9,7 @@
 header('Content-Type: application/json');
 
 // Includo la configurazione e connessione PDO
-require_once __DIR__ . './../config.php';
+require_once __DIR__ . '/../config.php';
 
 // Avvio la sessione per gestire lo stato di login
 session_start();

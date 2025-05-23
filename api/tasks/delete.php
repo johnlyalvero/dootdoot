@@ -1,3 +1,4 @@
+<?php
 // -----------------------------------------------------------------------------
 // File: /api/tasks/delete.php
 // API per cancellare un task o test.

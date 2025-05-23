@@ -10,7 +10,7 @@
 header('Content-Type: application/json');
 
 // Includo la configurazione e connessione PDO
-require_once __DIR__ . './../config.php';
+require_once __DIR__ . '/../config.php';
 
 // Leggo il payload JSON inviato dal client
 $input = json_decode(file_get_contents('php://input'), true);

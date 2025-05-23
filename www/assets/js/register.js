@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       // Invio della richiesta POST in formato JSON
-      const response = await fetch('../../api/auth/register.php', {
+      const response = await fetch('./../../api/auth/register.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -32,20 +32,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (response.ok && data.success) {
         // Successo: messaggio e redirect al login
         messageDiv.innerHTML =
-          `<div class="alert alert-success">Registrazione avvenuta con successo! ID utente: ${data.user_id}</div>`;
+          `<div class=\"alert alert-success\">Registrazione avvenuta con successo! ID utente: ${data.user_id}</div>`;
         setTimeout(() => {
           window.location.href = 'login.html';
         }, 2000);
       } else {
         // Errore restituito dall'API
         messageDiv.innerHTML =
-          `<div class="alert alert-danger">${data.error || 'Errore durante la registrazione'}</div>`;
+          `<div class=\"alert alert-danger\">${data.error || 'Errore durante la registrazione'}</div>`;
       }
     } catch (error) {
       // Errore di rete o inaspettato
       console.error('Fetch error:', error);
       messageDiv.innerHTML =
-        `<div class="alert alert-danger">Errore di rete: ${error.message}</div>`;
+        `<div class=\"alert alert-danger\">Errore di rete: ${error.message}</div>`;
     }
   });
 });
