@@ -5,7 +5,7 @@
 // Riceve JSON: id, title, description, due_date, is_test, completed.
 // -----------------------------------------------------------------------------
 header('Content-Type: application/json');
-require_once __DIR__ . '/../auth/config.php';
+require_once __DIR__ . './../config.php';
 session_start();
 
 // Controllo autenticazione

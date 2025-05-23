@@ -1,0 +1,81 @@
+  <!-- Bottoni e modali per Edit/Delete -->
+  <!-- I pulsanti verranno inseriti dinamicamente da tasks.js per ogni task/session -->
+
+  <!-- Edit Task Modal -->
+  <div class="modal fade" id="editTaskModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Modifica Attività</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="edit-task-form">
+            <input type="hidden" id="edit-task-id">
+            <div class="mb-3">
+              <label class="form-label">Titolo</label>
+              <input type="text" id="edit-title" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Descrizione</label>
+              <textarea id="edit-description" class="form-control"></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Data di scadenza</label>
+              <input type="date" id="edit-due-date" class="form-control" required>
+            </div>
+            <div class="form-check mb-3">
+              <input type="checkbox" id="edit-is-test" class="form-check-input">
+              <label class="form-check-label">È un test?</label>
+            </div>
+            <div class="form-check mb-3">
+              <input type="checkbox" id="edit-completed" class="form-check-input">
+              <label class="form-check-label">Completato</label>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="button" id="save-task-btn" class="btn btn-primary">Salva</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Session Modal (simile) -->
+  <div class="modal fade" id="editSessionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Modifica Sessione</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="edit-session-form">
+            <input type="hidden" id="edit-session-id">
+            <div class="mb-3">
+              <label class="form-label">Data e Ora Inizio</label>
+              <input type="datetime-local" id="edit-start-time" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Data e Ora Fine</label>
+              <input type="datetime-local" id="edit-end-time" class="form-control">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Note</label>
+              <textarea id="edit-notes" class="form-control"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="button" id="save-session-btn" class="btn btn-primary">Salva</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script src="../assets/js/edit_task.js"></script>
+<script src="../assets/js/delete_task.js"></script>
+<script src="../assets/js/edit_session.js"></script>
+<script src="../assets/js/delete_session.js"></script>
