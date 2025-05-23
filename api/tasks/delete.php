@@ -5,7 +5,7 @@
 // Riceve JSON: id.
 // -----------------------------------------------------------------------------
 header('Content-Type: application/json');
-require_once __DIR__ . './../config.php';
+require_once __DIR__ . '/../config.php';
 session_start();
 
 if (empty($_SESSION['user_id'])) {

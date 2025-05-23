@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       // Invio della richiesta POST in formato JSON includendo i cookie di sessione
-      const response = await fetch('../../api/auth/login.php', {
+      const response = await fetch('./../../api/auth/login.php', {
         method: 'POST',
         credentials: 'include', // Include cookie di sessione
         headers: { 'Content-Type': 'application/json' },
