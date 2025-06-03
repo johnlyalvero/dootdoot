@@ -1,443 +1,504 @@
 /**
- * tasks.js
+ * www/assets/js/tasks.js
  *
- * 1. Carica e conta i Task e i Test (da API)
- * 2. Popola le liste #section-tasks e #section-tests
- * 3. Gestisce toggle tra “Task” e “Test”
- * 4. Apre i modal per New Task e modifica/cancella
+ * 1. Toggle tra le sezioni “Task” e “Test”
+ * 2. Conteggi iniziale
+ * 3. Popolamento dinamico delle liste (Task / Test)
+ * 4. Apertura e gestione dei modali: New Task, New Test, Edit/Delete
+ * 5. Interazione con le API: add.php, update.php, delete.php
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 1) Carico liste iniziali
-  loadTaskCount();
-  loadTasksList();
-  loadTestCount();
-  loadTestsList();
-
-  // 2) Toggle sezioni
-  const btnTasks = document.getElementById('btn-view-tasks');
-  const btnTests = document.getElementById('btn-view-tests');
+  // Selettori principali
+  const btnTasks     = document.getElementById('btn-view-tasks');
+  const btnTests     = document.getElementById('btn-view-tests');
   const sectionTasks = document.getElementById('section-tasks');
   const sectionTests = document.getElementById('section-tests');
 
+  // Modali e form per New Task/Test e Edit/Delete
+  const modalNewTask     = document.getElementById('modal-new-task');
+  const formNewTask      = document.getElementById('form-new-task');
+  const btnCancelNewTask = document.getElementById('btn-cancel-new-task');
+
+  const modalNewTest     = document.getElementById('modal-new-test');
+  const formNewTest      = document.getElementById('form-new-test');
+  const btnCancelNewTest = document.getElementById('btn-cancel-new-test');
+
+  const btnCancelEditItem = document.getElementById('btn-cancel-edit-item');
+  const formEditItem      = document.getElementById('form-edit-item');
+  const btnDeleteItem     = document.getElementById('btn-delete-item');
+
+  // 1) Toggle Task / Test
+  if (sectionTasks && sectionTests) {
+    // All’avvio: mostra Task, nascondi Test
+    sectionTasks.classList.remove('hidden');
+    sectionTests.classList.add('hidden');
+  }
   if (btnTasks && btnTests && sectionTasks && sectionTests) {
     btnTasks.addEventListener('click', () => {
       sectionTasks.classList.remove('hidden');
       sectionTests.classList.add('hidden');
+      btnTasks.classList.add('active');
+      btnTests.classList.remove('active');
+      loadTaskList();
     });
     btnTests.addEventListener('click', () => {
       sectionTests.classList.remove('hidden');
       sectionTasks.classList.add('hidden');
+      btnTests.classList.add('active');
+      btnTasks.classList.remove('active');
+      loadTestList();
     });
   }
 
-  // 3) New Task
-  const btnNewTask = document.getElementById('btn-new-task');
-  const modalNewTask = document.getElementById('modal-new-task');
-  const formNewTask = document.getElementById('form-new-task');
-  const btnCancelTask = document.getElementById('btn-cancel-task');
+  // 2) Caricamento iniziale conteggi + lista Task
+  loadTaskCount().then(() => {
+    loadTaskList();
+  });
+  loadTestCount();
 
-  if (btnNewTask && modalNewTask && formNewTask && btnCancelTask) {
-    btnNewTask.addEventListener('click', () => {
-      openModal(modalNewTask);
-    });
+  // 3) Gestione MODALE NEW TASK
+  document.getElementById('btn-new-task').addEventListener('click', () => {
+    openModal(modalNewTask);
+  });
+  btnCancelNewTask.addEventListener('click', () => {
+    closeModal(modalNewTask);
+    formNewTask.reset();
+  });
+  formNewTask.addEventListener('submit', async e => {
+    e.preventDefault();
+    await submitNewTask();
+    closeModal(modalNewTask);
+    formNewTask.reset();
+    await refreshAll();
+  });
 
-    btnCancelTask.addEventListener('click', (e) => {
-      e.preventDefault();
-      closeModal(modalNewTask);
-    });
+  // 4) Gestione MODALE NEW TEST
+  document.getElementById('btn-new-test').addEventListener('click', () => {
+    openModal(modalNewTest);
+  });
+  btnCancelNewTest.addEventListener('click', () => {
+    closeModal(modalNewTest);
+    formNewTest.reset();
+  });
+  formNewTest.addEventListener('submit', async e => {
+    e.preventDefault();
+    await submitNewTest();
+    closeModal(modalNewTest);
+    formNewTest.reset();
+    await refreshAll();
+  });
 
-    formNewTask.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const title = document.getElementById('task-title').value.trim();
-      const date  = document.getElementById('task-date').value;
-      if (!title || !date) {
-        alert('Compila titolo e data.');
-        return;
-      }
-      try {
-        const response = await fetch('../../api/tasks/add.php', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, due_date: date, is_test: false })
-        });
-        if (response.status === 401) {
-          window.location.href = 'login.html';
-          return;
-        }
-        if (!response.ok) throw 'network-error';
-
-        const json = await response.json();
-        if (json.status === 'success') {
-          closeModal(modalNewTask);
-          loadTaskCount();
-          loadTasksList();
-          formNewTask.reset();
-        } else {
-          console.error('Errore creazione Task:', json.message);
-        }
-      } catch (err) {
-        console.error('Errore di rete new task:', err);
-      }
-    });
-  }
-
-  // 4) Gestione modifica/cancella Task e Test (delegation)
-  const taskListEl = document.querySelector('#section-tasks .item-list');
-  const testListEl = document.querySelector('#section-tests .item-list');
-
-  // Event delegation per Task
-  if (taskListEl) {
-    taskListEl.addEventListener('click', (e) => {
-      const item = e.target.closest('.item');
-      if (!item) return;
-      const taskId = item.dataset.id;
-      openModifyTaskModal(taskId);
-    });
-  }
-
-  // Event delegation per Test
-  if (testListEl) {
-    testListEl.addEventListener('click', (e) => {
-      const item = e.target.closest('.item');
-      if (!item) return;
-      const testId = item.dataset.id;
-      openModifyTestModal(testId);
-    });
-  }
+  // 5) Gestione MODALE EDIT / DELETE
+  btnCancelEditItem.addEventListener('click', () => {
+    closeModal(document.getElementById('modal-edit-item'));
+    formEditItem.reset();
+  });
+  formEditItem.addEventListener('submit', async e => {
+    e.preventDefault();
+    await submitEditItem();
+    closeModal(document.getElementById('modal-edit-item'));
+    formEditItem.reset();
+    await refreshAll();
+  });
+  btnDeleteItem.addEventListener('click', async () => {
+    if (confirm('Sei sicuro di voler cancellare questo elemento?')) {
+      await deleteItem();
+      closeModal(document.getElementById('modal-edit-item'));
+      await refreshAll();
+    }
+  });
 });
 
-/* ----- Funzioni di caricamento lista e contatori ----- */
+/* ===== FUNZIONE: conteggi ===== */
 
 async function loadTaskCount() {
   try {
-    const response = await fetch('../../api/tasks/list.php?type=task', {
-      method: 'GET',
-      credentials: 'include'
-    });
-    if (!response.ok) throw 'network-error';
+    const url = '../../api/tasks/list.php?type=task';
+    const response = await fetch(url, { method: 'GET', credentials: 'include' });
+    if (response.status === 401) {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (!response.ok) throw `http-error:${response.status}`;
     const json = await response.json();
-    if (json.status === 'success' && Array.isArray(json.tasks)) {
-      document.querySelector('.count-tasks').textContent = json.tasks.length;
+    if (json.success === true && Array.isArray(json.tasks)) {
+      const countEl = document.querySelector('.count-tasks');
+      if (countEl) countEl.textContent = json.tasks.length;
+    } else {
+      console.error('Errore conteggio task:', json.message || '');
     }
   } catch (err) {
     console.error('Errore loadTaskCount:', err);
   }
 }
 
-async function loadTasksList() {
-  try {
-    const response = await fetch('../../api/tasks/list.php?type=task', {
-      method: 'GET',
-      credentials: 'include'
-    });
-    if (!response.ok) throw 'network-error';
-    const json = await response.json();
-    if (json.status === 'success') {
-      populateTaskList(json.tasks);
-    }
-  } catch (err) {
-    console.error('Errore loadTasksList:', err);
-  }
-}
-
 async function loadTestCount() {
   try {
-    const response = await fetch('../../api/tasks/list.php?type=test', {
-      method: 'GET',
-      credentials: 'include'
-    });
-    if (!response.ok) throw 'network-error';
+    const url = '../../api/tasks/list.php?type=test';
+    const response = await fetch(url, { method: 'GET', credentials: 'include' });
+    if (response.status === 401) {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (!response.ok) throw `http-error:${response.status}`;
     const json = await response.json();
-    if (json.status === 'success' && Array.isArray(json.tasks)) {
-      document.querySelector('.count-tests').textContent = json.tasks.length;
+    if (json.success === true && Array.isArray(json.tasks)) {
+      const countEl = document.querySelector('.count-tests');
+      if (countEl) countEl.textContent = json.tasks.length;
+    } else {
+      console.error('Errore conteggio test:', json.message || '');
     }
   } catch (err) {
     console.error('Errore loadTestCount:', err);
   }
 }
 
-async function loadTestsList() {
+/* ===== FUNZIONE: Lista Task ===== */
+
+async function loadTaskList() {
   try {
-    const response = await fetch('../../api/tasks/list.php?type=test', {
-      method: 'GET',
-      credentials: 'include'
-    });
-    if (!response.ok) throw 'network-error';
+    const url = '../../api/tasks/list.php?type=task';
+    const response = await fetch(url, { method: 'GET', credentials: 'include' });
+    if (response.status === 401) {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (!response.ok) throw `http-error:${response.status}`;
     const json = await response.json();
-    if (json.status === 'success') {
-      populateTestList(json.tasks);
+    if (json.success === true && Array.isArray(json.tasks)) {
+      const listContainer = document.querySelector('#section-tasks .item-list');
+      listContainer.innerHTML = '';
+      if (json.tasks.length === 0) {
+        const li = document.createElement('li');
+        li.classList.add('no-items');
+        li.textContent = 'Nessun task trovato.';
+        listContainer.appendChild(li);
+        return;
+      }
+      json.tasks.forEach(task => {
+        const li = document.createElement('li');
+        li.classList.add('item');
+        li.setAttribute('data-id', task.id);
+
+        const titleEl = document.createElement('div');
+        titleEl.classList.add('item-title');
+        titleEl.textContent = task.title;
+        li.appendChild(titleEl);
+
+        const dateEl = document.createElement('div');
+        dateEl.classList.add('item-date');
+        dateEl.textContent = formatDate(task.due_date);
+        li.appendChild(dateEl);
+
+        // Icone modifica / elimina
+        const iconsContainer = document.createElement('div');
+        iconsContainer.classList.add('icons-container');
+
+        const editIcon = document.createElement('span');
+        editIcon.classList.add('icon-edit');
+        editIcon.textContent = '✏️';
+        editIcon.addEventListener('click', () => openEditModal(task, 'task'));
+        iconsContainer.appendChild(editIcon);
+
+        const deleteIcon = document.createElement('span');
+        deleteIcon.classList.add('icon-delete');
+        deleteIcon.textContent = '🗑️';
+        deleteIcon.addEventListener('click', () => openEditModal(task, 'task'));
+        iconsContainer.appendChild(deleteIcon);
+
+        li.appendChild(iconsContainer);
+        listContainer.appendChild(li);
+      });
+    } else {
+      console.error('Errore caricamento task list:', json.message || '');
     }
   } catch (err) {
-    console.error('Errore loadTestsList:', err);
+    console.error('Errore loadTaskList:', err);
   }
 }
 
-/* ----- Funzioni di popolamento DOM ----- */
+/* ===== FUNZIONE: Lista Test (con sessions) ===== */
 
-function populateTaskList(tasks) {
-  const ul = document.querySelector('#section-tasks .item-list');
-  if (!ul) return;
-  ul.innerHTML = '';
-  tasks.forEach(task => {
-    const li = document.createElement('li');
-    li.classList.add('item');
-    li.dataset.id = task.id;
-    li.innerHTML = `
-      <span class="item-checkbox">○</span>
-      <div class="item-content">
-        <p class="item-title">${task.title}</p>
-        <p class="item-date">Scadenza: ${task.due_date}</p>
-      </div>
-    `;
-    ul.appendChild(li);
-    const hr = document.createElement('hr');
-    hr.classList.add('divider');
-    ul.appendChild(hr);
-  });
-}
-
-function populateTestList(tests) {
-  const ul = document.querySelector('#section-tests .item-list');
-  if (!ul) return;
-  ul.innerHTML = '';
-  tests.forEach(test => {
-    const li = document.createElement('li');
-    li.classList.add('item');
-    li.dataset.id = test.id;
-    li.innerHTML = `
-      <div class="item-content">
-        <p class="item-title">${test.title}</p>
-        <p class="item-date">Data: ${test.due_date}</p>
-        <p class="item-desc">${test.description || ''}</p>
-      </div>
-    `;
-    ul.appendChild(li);
-    const hr = document.createElement('hr');
-    hr.classList.add('divider');
-    ul.appendChild(hr);
-  });
-}
-
-/* ----- Funzioni modali per modifica/cancella ----- */
-
-function openModifyTaskModal(taskId) {
-  // Crea popup dinamico per modificare o cancellare il task
-  const modal = document.createElement('div');
-  modal.classList.add('modal', 'show');
-  modal.innerHTML = `
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5>Modifica Task</h5>
-          <button class="btn-close" data-action="close">&times;</button>
-        </div>
-        <div class="modal-body">
-          <form id="form-modify-task">
-            <label for="edit-title">Titolo</label>
-            <input type="text" id="edit-title" value="" required>
-            <label for="edit-date">Data</label>
-            <input type="date" id="edit-date" required>
-            <button class="btn btn-confirm" type="submit">Salva</button>
-            <button class="btn btn-danger" id="btn-delete-task">Elimina</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  // Carico i dati correnti del task
-  fetchTaskById(taskId).then(task => {
-    modal.querySelector('#edit-title').value = task.title;
-    modal.querySelector('#edit-date').value = task.due_date;
-  });
-
-  // Chiudi modal
-  modal.querySelector('[data-action="close"]').addEventListener('click', () => {
-    document.body.removeChild(modal);
-  });
-
-  // Salva modifiche
-  modal.querySelector('#form-modify-task').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const updatedTitle = modal.querySelector('#edit-title').value.trim();
-    const updatedDate  = modal.querySelector('#edit-date').value;
-    try {
-      const response = await fetch('../../api/tasks/update.php', {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: taskId, title: updatedTitle, due_date: updatedDate })
-      });
-      if (!response.ok) throw 'network-error';
-      const json = await response.json();
-      if (json.status === 'success') {
-        document.body.removeChild(modal);
-        loadTaskCount();
-        loadTasksList();
-      } else {
-        console.error('Errore update Task:', json.message);
-      }
-    } catch (err) {
-      console.error('Errore di rete update task:', err);
-    }
-  });
-
-  // Elimina task
-  modal.querySelector('#btn-delete-task').addEventListener('click', async (e) => {
-    e.preventDefault();
-    if (!confirm('Sei sicuro di voler eliminare questo task?')) return;
-    try {
-      const response = await fetch('../../api/tasks/delete.php', {
-        method: 'DELETE',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: taskId })
-      });
-      if (!response.ok) throw 'network-error';
-      const json = await response.json();
-      if (json.status === 'success') {
-        document.body.removeChild(modal);
-        loadTaskCount();
-        loadTasksList();
-      } else {
-        console.error('Errore delete Task:', json.message);
-      }
-    } catch (err) {
-      console.error('Errore rete delete task:', err);
-    }
-  });
-}
-
-async function fetchTaskById(taskId) {
-  // API che restituisce un singolo task (opzionale; se non esiste, puoi ricavarlo
-  // filtrando la lista già caricata in memoria)
+async function loadTestList() {
   try {
-    const response = await fetch(`../../api/tasks/get.php?id=${taskId}`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    if (!response.ok) throw 'network-error';
+    const url = '../../api/tasks/list.php?type=test';
+    const response = await fetch(url, { method: 'GET', credentials: 'include' });
+    if (response.status === 401) {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (!response.ok) throw `http-error:${response.status}`;
     const json = await response.json();
-    return json.task;
+    if (json.success === true && Array.isArray(json.tasks)) {
+      const listContainer = document.querySelector('#section-tests .item-list');
+      listContainer.innerHTML = '';
+      if (json.tasks.length === 0) {
+        const li = document.createElement('li');
+        li.classList.add('no-items');
+        li.textContent = 'Nessun test trovato.';
+        listContainer.appendChild(li);
+        return;
+      }
+      json.tasks.forEach(test => {
+        const li = document.createElement('li');
+        li.classList.add('item');
+        li.setAttribute('data-id', test.id);
+
+        const titleEl = document.createElement('div');
+        titleEl.classList.add('item-title');
+        titleEl.textContent = test.title;
+        li.appendChild(titleEl);
+
+        const dateEl = document.createElement('div');
+        dateEl.classList.add('item-date');
+        dateEl.textContent = formatDate(test.due_date);
+        li.appendChild(dateEl);
+
+        const descEl = document.createElement('div');
+        descEl.classList.add('item-desc');
+        descEl.textContent = test.description || '';
+        li.appendChild(descEl);
+
+        // Visualizza le sessioni (array test.sessions)
+        if (Array.isArray(test.sessions) && test.sessions.length > 0) {
+          const ulSessions = document.createElement('ul');
+          ulSessions.classList.add('session-list');
+          test.sessions.forEach(sess => {
+            const sesLi = document.createElement('li');
+            sesLi.classList.add('session-item');
+            sesLi.textContent = `Sessione: ${formatDate(sess.session_due_date)}`;
+            ulSessions.appendChild(sesLi);
+          });
+          li.appendChild(ulSessions);
+        }
+
+        // Icone modifica / elimina
+        const iconsContainer = document.createElement('div');
+        iconsContainer.classList.add('icons-container');
+
+        const editIcon = document.createElement('span');
+        editIcon.classList.add('icon-edit');
+        editIcon.textContent = '✏️';
+        editIcon.addEventListener('click', () => openEditModal(test, 'test'));
+        iconsContainer.appendChild(editIcon);
+
+        const deleteIcon = document.createElement('span');
+        deleteIcon.classList.add('icon-delete');
+        deleteIcon.textContent = '🗑️';
+        deleteIcon.addEventListener('click', () => openEditModal(test, 'test'));
+        iconsContainer.appendChild(deleteIcon);
+
+        li.appendChild(iconsContainer);
+        listContainer.appendChild(li);
+      });
+    } else {
+      console.error('Errore caricamento test list:', json.message || '');
+    }
   } catch (err) {
-    console.error('Errore fetchTaskById:', err);
-    return { title: '', due_date: '' };
+    console.error('Errore loadTestList:', err);
   }
 }
 
-function openModifyTestModal(testId) {
-  // Simile a openModifyTaskModal, ma include anche descrizione
-  const modal = document.createElement('div');
-  modal.classList.add('modal', 'show');
-  modal.innerHTML = `
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5>Modifica Test</h5>
-          <button class="btn-close" data-action="close">&times;</button>
-        </div>
-        <div class="modal-body">
-          <form id="form-modify-test">
-            <label for="edit-test-title">Titolo</label>
-            <input type="text" id="edit-test-title" value="" required>
-            <label for="edit-test-date">Data</label>
-            <input type="date" id="edit-test-date" required>
-            <label for="edit-test-desc">Descrizione</label>
-            <textarea id="edit-test-desc" rows="3"></textarea>
-            <button class="btn btn-confirm" type="submit">Salva</button>
-            <button class="btn btn-danger" id="btn-delete-test">Elimina</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  fetchTestById(testId).then(test => {
-    modal.querySelector('#edit-test-title').value = test.title;
-    modal.querySelector('#edit-test-date').value = test.due_date;
-    modal.querySelector('#edit-test-desc').value = test.description || '';
-  });
-
-  modal.querySelector('[data-action="close"]').addEventListener('click', () => {
-    document.body.removeChild(modal);
-  });
-
-  modal.querySelector('#form-modify-test').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const utitle = modal.querySelector('#edit-test-title').value.trim();
-    const udate  = modal.querySelector('#edit-test-date').value;
-    const udesc  = modal.querySelector('#edit-test-desc').value.trim();
-    try {
-      const response = await fetch('../../api/tasks/update.php', {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: testId, title: utitle, due_date: udate, description: udesc, is_test: true })
-      });
-      if (!response.ok) throw 'network-error';
-      const json = await response.json();
-      if (json.status === 'success') {
-        document.body.removeChild(modal);
-        loadTestCount();
-        loadTestsList();
-      } else {
-        console.error('Errore update Test:', json.message);
-      }
-    } catch (err) {
-      console.error('Errore rete update test:', err);
-    }
-  });
-
-  modal.querySelector('#btn-delete-test').addEventListener('click', async (e) => {
-    e.preventDefault();
-    if (!confirm('Sei sicuro di voler eliminare questo test?')) return;
-    try {
-      const response = await fetch('../../api/tasks/delete.php', {
-        method: 'DELETE',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: testId })
-      });
-      if (!response.ok) throw 'network-error';
-      const json = await response.json();
-      if (json.status === 'success') {
-        document.body.removeChild(modal);
-        loadTestCount();
-        loadTestsList();
-      } else {
-        console.error('Errore delete Test:', json.message);
-      }
-    } catch (err) {
-      console.error('Errore rete delete test:', err);
-    }
-  });
-}
-
-async function fetchTestById(testId) {
-  try {
-    const response = await fetch(`../../api/tasks/get.php?id=${testId}`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    if (!response.ok) throw 'network-error';
-    const json = await response.json();
-    return json.task;
-  } catch (err) {
-    console.error('Errore fetchTestById:', err);
-    return { title: '', due_date: '', description: '' };
-  }
-}
-
-/* ----- Helpers per modal ----- */
+/* ===== UTILITY: Apertura/Chiusura Modal ===== */
 
 function openModal(modalEl) {
+  modalEl.classList.remove('hidden');
   modalEl.classList.add('show');
 }
-
 function closeModal(modalEl) {
   modalEl.classList.remove('show');
+  modalEl.classList.add('hidden');
+}
+
+/* ===== FUNCTION: Nuovo Task ===== */
+
+async function submitNewTask() {
+  const title   = document.getElementById('new-task-title').value.trim();
+  const dueDate = document.getElementById('new-task-date').value;
+  if (!title || !dueDate) {
+    alert('Compila titolo e data.');
+    return;
+  }
+  try {
+    const payload = { title, due_date: dueDate, is_test: 0 };
+    const response = await fetch('../../api/tasks/add.php', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (response.status === 401) {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (!response.ok) {
+      console.error('HTTP error new task:', response.status);
+      return;
+    }
+    const json = await response.json();
+    if (!json.success) {
+      console.error('Errore API new task:', json.error || json.message);
+    }
+  } catch (err) {
+    console.error('Errore rete new task:', err);
+  }
+}
+
+/* ===== FUNCTION: Nuovo Test ===== */
+
+async function submitNewTest() {
+  const title       = document.getElementById('new-test-title').value.trim();
+  const description = document.getElementById('new-test-desc').value.trim();
+  const dueDate     = document.getElementById('new-test-date').value;
+  if (!title || !dueDate) {
+    alert('Compila titolo e data.');
+    return;
+  }
+  try {
+    const payload = { title, description, due_date: dueDate, is_test: 1 };
+    const response = await fetch('../../api/tasks/add.php', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (response.status === 401) {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (!response.ok) {
+      console.error('HTTP error new test:', response.status);
+      return;
+    }
+    const json = await response.json();
+    if (!json.success) {
+      console.error('Errore API new test:', json.error || json.message);
+    }
+  } catch (err) {
+    console.error('Errore rete new test:', err);
+  }
+}
+
+/* ===== FUNCTION: Apri MODAL di Edit/Delete ===== */
+
+let currentEditId   = null;
+let currentEditType = null; // 'task' oppure 'test'
+
+function openEditModal(item, type) {
+
+  console.log('openEditModal viene chiamato con:', item, type);
+
+  const editModalTitle = document.getElementById('edit-modal-title');
+  const editDescGroup  = document.getElementById('edit-item-desc-group');
+  const modalEditItem  = document.getElementById('modal-edit-item');
+
+  currentEditId   = item.id;
+  currentEditType = type;
+
+  editModalTitle.textContent = (type === 'task') ? 'Modifica Task' : 'Modifica Test';
+
+  if (type === 'test') {
+    editDescGroup.classList.remove('hidden');
+    document.getElementById('edit-item-desc').value = item.description || '';
+  } else {
+    editDescGroup.classList.add('hidden');
+  }
+
+  document.getElementById('edit-item-title').value = item.title;
+  document.getElementById('edit-item-date').value = item.due_date;
+
+  openModal(modalEditItem);
+}
+
+/* ===== FUNCTION: Edit / Update ===== */
+
+async function submitEditItem() {
+  const title   = document.getElementById('edit-item-title').value.trim();
+  const dueDate = document.getElementById('edit-item-date').value;
+  let description = '';
+  if (currentEditType === 'test') {
+    description = document.getElementById('edit-item-desc').value.trim();
+  }
+  if (!title || !dueDate) {
+    alert('Compila titolo e data.');
+    return;
+  }
+  try {
+    const payload = {
+      id:       currentEditId,
+      title,
+      due_date: dueDate,
+      is_test:  (currentEditType === 'test') ? 1 : 0,
+      description
+    };
+    const response = await fetch('../../api/tasks/update.php', {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (response.status === 401) {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (!response.ok) {
+      console.error('HTTP error update:', response.status);
+      return;
+    }
+    const json = await response.json();
+    if (!json.success) {
+      console.error('Errore API update:', json.error || json.message);
+    }
+  } catch (err) {
+    console.error('Errore rete update:', err);
+  }
+}
+
+/* ===== FUNCTION: Delete ===== */
+
+async function deleteItem() {
+  try {
+    const url = `../../api/tasks/delete.php?id=${encodeURIComponent(currentEditId)}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    if (response.status === 401) {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (!response.ok) {
+      console.error('HTTP error delete:', response.status);
+      return;
+    }
+    const json = await response.json();
+    if (!json.success) {
+      console.error('Errore API delete:', json.error || json.message);
+    }
+  } catch (err) {
+    console.error('Errore rete delete:', err);
+  }
+}
+
+/* ===== UTILITY: Formatta date da YYYY-MM-DD a DD/MM/YYYY ===== */
+
+function formatDate(mysqlDate) {
+  if (!mysqlDate) return '';
+  const parts = mysqlDate.split('-');
+  if (parts.length !== 3) return mysqlDate;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+/* ===== UTILITY: Ricarico conteggi e liste ===== */
+
+async function refreshAll() {
+  await loadTaskCount();
+  await loadTestCount();
+  const isTaskVisible = !document.getElementById('section-tasks').classList.contains('hidden');
+  if (isTaskVisible) {
+    await loadTaskList();
+  } else {
+    await loadTestList();
+  }
 }

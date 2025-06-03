@@ -1,18 +1,18 @@
 /**
  * dashboard.js
  *
- * Gestisce:
- * 1. Controllo sessione e caricamento dati utente/statistiche (da API)
- * 2. Funzionamento timer (selezione durata, conto alla rovescia, popup riepilogo/feedback)
- *    → “Avvio” → “Give Up”, e blocco modifica durata mentre il timer gira
- * 3. Logout
+ * 1. Controlla sessione e recupera username + profile_img (se esiste)
+ * 2. Aggiorna avatar (fallback default o immagine reale) e imposta redirect su profile.html
+ * 3. Recupera statistiche e le mostra
+ * 4. Gestisce timer con “Avvio” → “Give Up” e blocco modifica durata
+ * 5. Gestisce logout
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 1) Carico profilo e statistiche
+  // 1) Carico profilo (username + avatar) e statistiche
   fetchProfile()
     .then(username => {
-      updateUserName(username);
+      updateUserInfo(username);
       return fetchStats();
     })
     .then(stats => {
@@ -22,18 +22,29 @@ document.addEventListener('DOMContentLoaded', () => {
       if (err === 'unauthorized') {
         window.location.href = 'login.html';
       } else {
-        console.error('Errore durante il caricamento della dashboard:', err);
+        console.error('Errore caricamento dashboard:', err);
       }
     });
 
-  // 2) Setup logout
+  // 2) Listener sul bottone avatar per redirect a profile.html
+  const btnProfile = document.querySelector('.btn-profile');
+  if (btnProfile) {
+    btnProfile.addEventListener('click', () => {
+      window.location.href = 'profile.html';
+    });
+  }
+
+  // 3) Logout
   setupLogoutButton();
 
-  // 3) Setup timer click e start/give up
+  // 4) Timer interazioni
   setupTimerInteractions();
 });
 
-/* ----- Sezione 1: API per profilo e statistiche ----- */
+/* ----- Sezione 1: API per profilo (username + profile_img) ----- */
+
+// Memorizziamo il path dell’avatar (vuoto se non impostato)
+window.profileImgPath = '';
 
 async function fetchProfile() {
   try {
@@ -48,7 +59,7 @@ async function fetchProfile() {
     const json = await response.json();
     if (json.status !== 'success') throw 'generic-error';
 
-    // Memorizzo profile_img globalmente
+    // Salvo in window.profileImgPath il percorso relativo restituito dal DB (es: "assets/img/profiles/user_1_1630000000.png")
     window.profileImgPath = json.data.profile_img || '';
     return json.data.username;
 
@@ -57,6 +68,24 @@ async function fetchProfile() {
     throw 'generic-error';
   }
 }
+
+function updateUserInfo(username) {
+  // (a) Aggiorna lo span .user-name se esiste
+  const nameSpan = document.querySelector('.user-name');
+  if (nameSpan) nameSpan.textContent = username;
+
+  // (b) Aggiorna il background-image dello span.profile-img
+  const avatar = document.querySelector('.profile-img');
+  if (avatar) {
+    if (window.profileImgPath) {
+      // Se abbiamo un percorso in DB, lo applichiamo
+      avatar.style.backgroundImage = `url('../${window.profileImgPath}')`;
+    }
+    // Altrimenti rimane l’inline style impostato in HTML (default-avatar.png)
+  }
+}
+
+/* ----- Sezione 2: API per statistiche utente ----- */
 
 async function fetchStats() {
   try {
@@ -83,16 +112,6 @@ async function fetchStats() {
   }
 }
 
-function updateUserName(username) {
-  const span = document.querySelector('.user-name');
-  if (span) span.textContent = username;
-  // Carichiamo immagine di profilo se disponibile
-  const avatar = document.querySelector('.profile-img');
-  if (avatar && window.profileImgPath) {
-    avatar.style.backgroundImage = `url('../${window.profileImgPath}')`;
-  }
-}
-
 function updateStats(stats) {
   const statEls = document.querySelectorAll('.stat-value');
   if (statEls.length < 4) return;
@@ -102,7 +121,7 @@ function updateStats(stats) {
   statEls[3].textContent = stats.dedication;
 }
 
-/* ----- Sezione 2: Logout ----- */
+/* ----- Sezione 3: Logout ----- */
 
 function setupLogoutButton() {
   const btn = document.getElementById('logout-btn');
@@ -119,7 +138,7 @@ function setupLogoutButton() {
         return;
       }
       if (!response.ok) {
-        console.error('Errore HTTP durante logout:', response.status);
+        console.error('Errore HTTP logout:', response.status);
         return;
       }
       const json = await response.json();
@@ -129,39 +148,36 @@ function setupLogoutButton() {
         console.error('Logout fallito:', json.message || 'Errore sconosciuto');
       }
     } catch (err) {
-      console.error('Errore di rete durante logout:', err);
+      console.error('Errore rete logout:', err);
     }
   });
 }
 
-/* ----- Sezione 3: Timer con “Avvio” → “Give Up” e blocco modifica ----- */
+/* ----- Sezione 4: Timer (Avvio/Give Up & Blocca modifica) ----- */
 
 function setupTimerInteractions() {
-  const timerDisplay     = document.getElementById('timer-display');
-  const btnStart         = document.getElementById('btn-start');
-  const modalDuration    = document.getElementById('modal-duration');
-  const btnSetDuration   = document.getElementById('btn-set-duration');
-  const btnCancelDuration= document.getElementById('btn-cancel-duration');
-  const inputDuration    = document.getElementById('input-duration');
+  const timerDisplay      = document.getElementById('timer-display');
+  const btnStart          = document.getElementById('btn-start');
+  const modalDuration     = document.getElementById('modal-duration');
+  const btnSetDuration    = document.getElementById('btn-set-duration');
+  const btnCancelDuration = document.getElementById('btn-cancel-duration');
+  const inputDuration     = document.getElementById('input-duration');
 
   let countdownInterval = null;
   let remainingSeconds  = 25 * 60; // default 25 minuti
 
-  // 3.1: Disabilita apertura modal se timer in esecuzione
+  // 4.1: Clic su timer → se il timer gira, non faccio niente
   timerDisplay.addEventListener('click', () => {
-    if (countdownInterval !== null) {
-      // Timer attivo: blocco modifica
-      return;
-    }
+    if (countdownInterval !== null) return;
     if (!modalDuration) return;
     openModal(modalDuration);
   });
 
-  // 3.2: Impostazione durata selezionata
+  // 4.2: Imposta durata (bottone “Imposta”)
   if (btnSetDuration && inputDuration && modalDuration) {
     btnSetDuration.addEventListener('click', () => {
       let minutes = parseInt(inputDuration.value, 10);
-      if (isNaN(minutes) || minutes < 5 || minutes > 120) {
+      if (isNaN(minutes) || minutes < 1 || minutes > 120) {
         alert('Inserisci un valore tra 5 e 120 minuti.');
         return;
       }
@@ -171,25 +187,24 @@ function setupTimerInteractions() {
     });
   }
 
-  // 3.3: Annulla modifica durata
+  // 4.3: Annulla modifica durata
   if (btnCancelDuration && modalDuration) {
     btnCancelDuration.addEventListener('click', () => {
       closeModal(modalDuration);
     });
   }
 
-  // 3.4: Gestione “Avvio” e “Give Up”
+  // 4.4: Gestione “Avvio” e “Give Up”
   if (btnStart) {
     btnStart.addEventListener('click', () => {
       if (countdownInterval === null) {
-        // Avvio timer
+        // Avvio nuovo conteggio
         btnStart.textContent = 'Give Up';
         startCountdown();
       } else {
-        // Give Up: fermo e resetto
+        // Give Up: interrompo e resetto
         clearInterval(countdownInterval);
         countdownInterval = null;
-        // Reset ai secondi selezionati (o default se input non disponibile)
         const minutes = inputDuration ? parseInt(inputDuration.value, 10) : 25;
         remainingSeconds = (isNaN(minutes) ? 25 : minutes) * 60;
         updateTimerDisplay();
@@ -224,7 +239,6 @@ function setupTimerInteractions() {
   }
 
   function onTimerEnd() {
-    // Mostra pop-up riepilogo
     const modalSummary = document.getElementById('modal-summary');
     if (modalSummary) {
       openModal(modalSummary);
@@ -240,10 +254,6 @@ function setupTimerInteractions() {
   }
 
   // Helper modali
-  function openModal(modalEl) {
-    modalEl.classList.add('show');
-  }
-  function closeModal(modalEl) {
-    modalEl.classList.remove('show');
-  }
+  function openModal(modalEl)  { modalEl.classList.add('show'); }
+  function closeModal(modalEl) { modalEl.classList.remove('show'); }
 }

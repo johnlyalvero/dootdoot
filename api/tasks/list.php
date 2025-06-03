@@ -2,85 +2,81 @@
 /**
  * list.php
  *
- * API per recuperare tutti i task e i test di un utente,
- * ordinati per data di scadenza. Per ogni test, includo
- * le study sessions associate ordinate per start_time.
+ * API per ottenere la lista di Task o Test per l’utente loggato.
+ * Accetta query string:
+ *   - type=task → restituisce solo is_test = 0
+ *   - type=test → restituisce solo is_test = 1
+ *
+ * Per i Test include anche le study_sessions sotto ogni test.
+ *
+ * Risposta JSON:
+ *   { "success": true, "tasks": [ {id, title, description, due_date, is_test, completed, [sessions]}, … ] }
  */
 
-header('Content-Type: application/json');
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+header('Content-Type: application/json; charset=utf-8');
+
 require_once __DIR__ . '/../config.php';
 session_start();
 
-// Verifica sessione utente
+// 1) Verifico login
 if (empty($_SESSION['user_id'])) {
     http_response_code(401);
-    echo json_encode(['error' => 'Utente non autenticato']);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
+}
+$userId = $_SESSION['user_id'];
+
+// 2) Leggo il parametro type (task o test)
+$type = isset($_GET['type']) ? strtolower($_GET['type']) : '';
+if ($type === 'task') {
+    $isTest = 0;
+} elseif ($type === 'test') {
+    $isTest = 1;
+} else {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Parametro type non valido. Usa "task" o "test".']);
     exit;
 }
 
-$userId = $_SESSION['user_id'];
-
 try {
-    // Recupero tutti i task/test per l'utente
-    $stmt = $pdo->prepare(
-        'SELECT id, title, description, due_date, is_test, completed, created_at
-         FROM tasks
-         WHERE user_id = ?
-         ORDER BY due_date ASC'
-    );
-    $stmt->execute([$userId]);
-    $tasksRaw = $stmt->fetchAll();
+    // 3) Seleziono i task/tests di quell’utente
+    $stmt = $pdo->prepare("
+        SELECT id, title, description, due_date, is_test, completed
+        FROM tasks
+        WHERE user_id = :uid AND is_test = :ist
+        ORDER BY due_date ASC
+    ");
+    $stmt->bindParam(':uid', $userId, PDO::PARAM_INT);
+    $stmt->bindParam(':ist', $isTest, PDO::PARAM_INT);
+    $stmt->execute();
+    $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Recupero tutte le study sessions per i task di tipo test
-    $stmt2 = $pdo->prepare(
-        'SELECT id, task_id, start_time, end_time, duration_minutes, focus_score, discipline_score,
-                efficiency_score, dedication_score, notes
-         FROM study_sessions
-         WHERE user_id = ?
-         ORDER BY start_time ASC'
-    );
-    $stmt2->execute([$userId]);
-    $sessionsRaw = $stmt2->fetchAll();
-
-    // Organizzo le sessions per task_id
-    $sessionsByTask = [];
-    foreach ($sessionsRaw as $session) {
-        $sessionsByTask[$session['task_id']][] = [
-            'id' => (int)$session['id'],
-            'start_time' => $session['start_time'],
-            'end_time' => $session['end_time'],
-            'duration_minutes' => $session['duration_minutes'],
-            'focus_score' => $session['focus_score'],
-            'discipline_score' => $session['discipline_score'],
-            'efficiency_score' => $session['efficiency_score'],
-            'dedication_score' => $session['dedication_score'],
-            'notes' => $session['notes'],
-        ];
-    }
-
-    // Costruisco l'array finale
-    $tasks = [];
-    foreach ($tasksRaw as $task) {
-        $t = [
-            'id' => (int)$task['id'],
-            'title' => $task['title'],
-            'description' => $task['description'],
-            'due_date' => $task['due_date'],
-            'is_test' => (bool)$task['is_test'],
-            'completed' => (bool)$task['completed'],
-            'created_at' => $task['created_at'],
-        ];
-        // Aggiungo le sessions se è un test
-        if ($t['is_test']) {
-            $t['sessions'] = $sessionsByTask[$t['id']] ?? [];
+    // 4) Se siamo in 'test', recupero anche le sessioni per ciascun test
+    if ($isTest === 1 && !empty($tasks)) {
+        $stmt2 = $pdo->prepare("
+            SELECT id, task_id, DATE_FORMAT(start_time, '%Y-%m-%d') AS session_due_date
+            FROM study_sessions
+            WHERE task_id = :task_id
+            ORDER BY start_time ASC
+        ");
+        foreach ($tasks as &$test) {
+            $stmt2->bindParam(':task_id', $test['id'], PDO::PARAM_INT);
+            $stmt2->execute();
+            $sessions = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+            $test['sessions'] = $sessions;
         }
-        $tasks[] = $t;
+        unset($test);
     }
 
+    // 5) Restituisco il JSON
     echo json_encode(['success' => true, 'tasks' => $tasks]);
     exit;
-} catch (Exception $e) {
+
+} catch (PDOException $e) {
+    error_log('list.php PDOException: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Errore recupero task']);
+    echo json_encode(['success' => false, 'message' => 'Database error']);
     exit;
 }

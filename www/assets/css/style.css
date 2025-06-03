@@ -73,6 +73,7 @@ a:focus {
 
 .profile-img,
 .profile-img-large {
+  display: inline-block;
   background-color: #343454;
   background-size: cover;
   background-position: center;
@@ -604,4 +605,11 @@ input[type="password"]:focus,
 .btn-secondary {
   margin-top: 0.8rem;
   font-size: 0.9rem;
+}
+
+/* Facoltativo: bordo/divider fra gli item già popolati senza <hr> */
+.item + .item {
+  border-top: 1px solid #555;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
 }
