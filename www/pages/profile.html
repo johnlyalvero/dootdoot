@@ -31,7 +31,19 @@
     <section class="info-box">
       <div class="info-left">
         <!-- Placeholder immagine profilo -->
-        <div class="profile-img-large" data-src="path/to/avatar.jpg"></div>
+        <div class="profile-img-large"
+           id="profile-img-large"
+           style="background-image: url('../assets/img/default-avatar.png');">
+       </div>
+       <!-- Form per upload immagine -->
+       <form id="form-upload-img" enctype="multipart/form-data">
+         <label for="input-profile-image" class="btn btn-secondary">
+           Cambia Foto
+         </label>
+         <input type="file" id="input-profile-image" name="profile_image"
+                accept="image/png,image/jpeg,image/webp" class="hidden">
+       </form>
+
       </div>
       <div class="info-right">
         <h3>StudenteID</h3>

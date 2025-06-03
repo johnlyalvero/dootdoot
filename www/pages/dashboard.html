@@ -16,7 +16,14 @@
     <div class="header-right">
       <!-- Immagine profilo cliccabile -->
       <button class="btn-profile" aria-label="Vai al Profilo">
-        <span class="profile-img" data-src="../assets/img/logo.png"></span>
+        <span class="profile-img"
+                data-src="../assets/img/logo.png"
+                style="background-image: url('../assets/img/default-avatar.png');">
+        </span>
+      </button>
+      <!-- Bottone Logout -->
+      <button class="btn btn-secondary" id="logout-btn" aria-label="Logout">
+        Logout
       </button>
     </div>
   </header>
@@ -35,8 +42,7 @@
         Avvio
       </button>
 
-      <!-- POP-UP DURATA (inizialmente hidden) -->
-      <!-- 
+      <!-- POP-UP DURATA (inizialmente hidden) -->   
       <div class="modal timer-modal" id="modal-duration">
         <div class="modal-content">
           <h2>Seleziona Durata</h2>
@@ -46,11 +52,9 @@
           <button class="btn btn-secondary" id="btn-cancel-duration">Annulla</button>
         </div>
       </div>
-      -->
     </section>
 
     <!-- POP-UP RIEPILOGO TASK/SESSIONI (hidden fino al termine) -->
-    <!-- 
     <div class="modal summary-modal" id="modal-summary">
       <div class="modal-content">
         <h2>Riepilogo</h2>
@@ -67,22 +71,16 @@
         <button class="btn btn-primary" id="btn-close-summary">Chiudi</button>
       </div>
     </div>
-    -->
 
     <!-- POP-UP FEEDBACK (hidden fino al completamento) -->
-    <!-- 
     <div class="modal feedback-modal" id="modal-feedback">
       <div class="modal-content">
         <h2>Feedback Sessione</h2>
         <form id="feedback-form">
           <!-- Focus -->
-          <!--
           <label for="feedback-focus">Focus (1-5):</label>
           <input type="range" id="feedback-focus" name="feedback_focus" min="1" max="5" value="3">
-          -->
-          <!-- 
           <!-- Utilità -->
-          <!--
           <label for="feedback-utilita">Utilità:</label>
           <select id="feedback-utilita" name="feedback_utilita">
             <option value="1">Per nulla utile</option>
@@ -91,20 +89,14 @@
             <option value="4">Molto utile</option>
             <option value="5">Essenziale</option>
           </select>
-          -->
-          <!-- 
           <!-- Distrazioni -->
-          <!--
           <label for="feedback-distrazioni">Distrazioni:</label>
           <textarea id="feedback-distrazioni" name="feedback_distrazioni" rows="3"
                     placeholder="Cosa ti ha distratto?"></textarea>
-          -->
-          <!-- 
           <button type="submit" class="btn btn-primary">Invia Feedback</button>
         </form>
       </div>
     </div>
-    -->
   </main>
 
   <!-- NAVBAR -->

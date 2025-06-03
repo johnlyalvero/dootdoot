@@ -4,6 +4,7 @@
  * Gestisce:
  * 1. Controllo sessione e caricamento dati utente/statistiche (da API)
  * 2. Funzionamento timer (selezione durata, conto alla rovescia, popup riepilogo/feedback)
+ *    → “Avvio” → “Give Up”, e blocco modifica durata mentre il timer gira
  * 3. Logout
  */
 
@@ -28,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 2) Setup logout
   setupLogoutButton();
 
-  // 3) Setup timer click e start
+  // 3) Setup timer click e start/give up
   setupTimerInteractions();
 });
 
@@ -46,6 +47,9 @@ async function fetchProfile() {
 
     const json = await response.json();
     if (json.status !== 'success') throw 'generic-error';
+
+    // Memorizzo profile_img globalmente
+    window.profileImgPath = json.data.profile_img || '';
     return json.data.username;
 
   } catch (err) {
@@ -82,6 +86,11 @@ async function fetchStats() {
 function updateUserName(username) {
   const span = document.querySelector('.user-name');
   if (span) span.textContent = username;
+  // Carichiamo immagine di profilo se disponibile
+  const avatar = document.querySelector('.profile-img');
+  if (avatar && window.profileImgPath) {
+    avatar.style.backgroundImage = `url('../${window.profileImgPath}')`;
+  }
 }
 
 function updateStats(stats) {
@@ -125,26 +134,30 @@ function setupLogoutButton() {
   });
 }
 
-/* ----- Sezione 3: Timer ----- */
+/* ----- Sezione 3: Timer con “Avvio” → “Give Up” e blocco modifica ----- */
 
 function setupTimerInteractions() {
-  const timerDisplay = document.getElementById('timer-display');
-  const btnStart = document.getElementById('btn-start');
-  const modalDuration = document.getElementById('modal-duration');
-  const btnSetDuration = document.getElementById('btn-set-duration');
-  const btnCancelDuration = document.getElementById('btn-cancel-duration');
-  const inputDuration = document.getElementById('input-duration');
+  const timerDisplay     = document.getElementById('timer-display');
+  const btnStart         = document.getElementById('btn-start');
+  const modalDuration    = document.getElementById('modal-duration');
+  const btnSetDuration   = document.getElementById('btn-set-duration');
+  const btnCancelDuration= document.getElementById('btn-cancel-duration');
+  const inputDuration    = document.getElementById('input-duration');
 
   let countdownInterval = null;
-  let remainingSeconds = 25 * 60; // default 25 minuti
+  let remainingSeconds  = 25 * 60; // default 25 minuti
 
-  // Mostra modal per selezionare durata
+  // 3.1: Disabilita apertura modal se timer in esecuzione
   timerDisplay.addEventListener('click', () => {
+    if (countdownInterval !== null) {
+      // Timer attivo: blocco modifica
+      return;
+    }
     if (!modalDuration) return;
     openModal(modalDuration);
   });
 
-  // Impostazione durata selezionata
+  // 3.2: Impostazione durata selezionata
   if (btnSetDuration && inputDuration && modalDuration) {
     btnSetDuration.addEventListener('click', () => {
       let minutes = parseInt(inputDuration.value, 10);
@@ -158,18 +171,30 @@ function setupTimerInteractions() {
     });
   }
 
-  // Annulla modifica durata
+  // 3.3: Annulla modifica durata
   if (btnCancelDuration && modalDuration) {
     btnCancelDuration.addEventListener('click', () => {
       closeModal(modalDuration);
     });
   }
 
-  // Avvia il conto alla rovescia
+  // 3.4: Gestione “Avvio” e “Give Up”
   if (btnStart) {
     btnStart.addEventListener('click', () => {
-      if (countdownInterval) return; // già in esecuzione
-      startCountdown();
+      if (countdownInterval === null) {
+        // Avvio timer
+        btnStart.textContent = 'Give Up';
+        startCountdown();
+      } else {
+        // Give Up: fermo e resetto
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+        // Reset ai secondi selezionati (o default se input non disponibile)
+        const minutes = inputDuration ? parseInt(inputDuration.value, 10) : 25;
+        remainingSeconds = (isNaN(minutes) ? 25 : minutes) * 60;
+        updateTimerDisplay();
+        btnStart.textContent = 'Avvio';
+      }
     });
   }
 
@@ -182,6 +207,7 @@ function setupTimerInteractions() {
         countdownInterval = null;
         remainingSeconds = 0;
         updateTimerDisplay();
+        btnStart.textContent = 'Avvio';
         onTimerEnd();
       } else {
         updateTimerDisplay();
@@ -198,11 +224,10 @@ function setupTimerInteractions() {
   }
 
   function onTimerEnd() {
-    // Show riepilogo delle attività rimaste
+    // Mostra pop-up riepilogo
     const modalSummary = document.getElementById('modal-summary');
     if (modalSummary) {
       openModal(modalSummary);
-      // Dopo chiusura, mostra popup feedback
       const btnCloseSummary = document.getElementById('btn-close-summary');
       if (btnCloseSummary) {
         btnCloseSummary.addEventListener('click', () => {
@@ -214,7 +239,7 @@ function setupTimerInteractions() {
     }
   }
 
-  // Modal helper
+  // Helper modali
   function openModal(modalEl) {
     modalEl.classList.add('show');
   }

@@ -594,3 +594,14 @@ input[type="password"]:focus,
     margin-bottom: 0.5rem;
   }
 }
+
+/* Nasconde gli input file ma lascia accessibile il label */
+.hidden {
+  display: none;
+}
+
+/* Pulsante “Cambia Foto” sotto l’avatar */
+.btn-secondary {
+  margin-top: 0.8rem;
+  font-size: 0.9rem;
+}

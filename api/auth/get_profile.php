@@ -6,7 +6,7 @@
  * Restituisce username, scuola, classe e percorso immagine profilo in formato JSON.
  */
 
-// Sblocchiamo il display degli errori per debugging
+// Sblocchiamo il display degli errori per debugging (rimuovere in produzione)
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
