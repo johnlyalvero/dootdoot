@@ -1,126 +1,443 @@
-// tasks.js
-// Recupera e visualizza tasks+sessions, aggiunge pulsanti Edit/Delete e popola i modali
+/**
+ * tasks.js
+ *
+ * 1. Carica e conta i Task e i Test (da API)
+ * 2. Popola le liste #section-tasks e #section-tests
+ * 3. Gestisce toggle tra “Task” e “Test”
+ * 4. Apre i modal per New Task e modifica/cancella
+ */
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const tasksList = document.getElementById('tasks-list');
-  const noTasksMessage = document.getElementById('no-tasks-message');
+document.addEventListener('DOMContentLoaded', () => {
+  // 1) Carico liste iniziali
+  loadTaskCount();
+  loadTasksList();
+  loadTestCount();
+  loadTestsList();
 
-  try {
-    const response = await fetch('../../api/tasks/list.php', { method: 'GET', credentials: 'include' });
-    const data = await response.json();
-    if (!response.ok || !data.success) throw new Error(data.error || 'Errore recupero attività');
-    const tasks = data.tasks;
-    if (tasks.length === 0) {
-      noTasksMessage.classList.remove('d-none');
-      return;
-    }
+  // 2) Toggle sezioni
+  const btnTasks = document.getElementById('btn-view-tasks');
+  const btnTests = document.getElementById('btn-view-tests');
+  const sectionTasks = document.getElementById('section-tasks');
+  const sectionTests = document.getElementById('section-tests');
 
-    tasks.forEach(task => {
-      const item = document.createElement('div');
-      item.className = 'list-group-item mb-3';
+  if (btnTasks && btnTests && sectionTasks && sectionTests) {
+    btnTasks.addEventListener('click', () => {
+      sectionTasks.classList.remove('hidden');
+      sectionTests.classList.add('hidden');
+    });
+    btnTests.addEventListener('click', () => {
+      sectionTests.classList.remove('hidden');
+      sectionTasks.classList.add('hidden');
+    });
+  }
 
-      // Titolo e data
-      const title = document.createElement('h5');
-      title.textContent = `${task.title} (${new Date(task.due_date).toLocaleDateString()})`;
-      item.appendChild(title);
+  // 3) New Task
+  const btnNewTask = document.getElementById('btn-new-task');
+  const modalNewTask = document.getElementById('modal-new-task');
+  const formNewTask = document.getElementById('form-new-task');
+  const btnCancelTask = document.getElementById('btn-cancel-task');
 
-      // Pulsanti Modifica/Elimina Task
-      const btnEdit = document.createElement('button');
-      btnEdit.className = 'btn btn-sm btn-primary me-2 btn-edit-task';
-      btnEdit.textContent = 'Modifica';
-      btnEdit.dataset.id = task.id;
-      item.appendChild(btnEdit);
-
-      const btnDelete = document.createElement('button');
-      btnDelete.className = 'btn btn-sm btn-danger btn-delete-task';
-      btnDelete.textContent = 'Elimina';
-      btnDelete.dataset.id = task.id;
-      item.appendChild(btnDelete);
-
-      // Descrizione
-      if (task.description) {
-        const desc = document.createElement('p');
-        desc.textContent = task.description;
-        item.appendChild(desc);
-      }
-
-      // Sessioni per test
-      if (task.is_test && task.sessions?.length) {
-        const sessionsHeader = document.createElement('h6');
-        sessionsHeader.textContent = 'Sessioni di studio:';
-        item.appendChild(sessionsHeader);
-
-        task.sessions.forEach(session => {
-          const sessionItem = document.createElement('div');
-          sessionItem.className = 'd-flex align-items-center mb-1';
-
-          // Label sessione
-          const lbl = document.createElement('span');
-          lbl.className = 'me-auto';
-          lbl.textContent = new Date(session.start_time).toLocaleString();
-          sessionItem.appendChild(lbl);
-
-          // Pulsanti Session
-          const editS = document.createElement('button');
-          editS.className = 'btn btn-sm btn-secondary me-2 btn-edit-session';
-          editS.textContent = 'Modifica';
-          editS.dataset.id = session.id;
-          sessionItem.appendChild(editS);
-
-          const delS = document.createElement('button');
-          delS.className = 'btn btn-sm btn-danger btn-delete-session';
-          delS.textContent = 'Elimina';
-          delS.dataset.id = session.id;
-          sessionItem.appendChild(delS);
-
-          item.appendChild(sessionItem);
-        });
-      }
-
-      tasksList.appendChild(item);
+  if (btnNewTask && modalNewTask && formNewTask && btnCancelTask) {
+    btnNewTask.addEventListener('click', () => {
+      openModal(modalNewTask);
     });
 
-  } catch (error) {
-    console.error(error);
-    tasksList.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+    btnCancelTask.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeModal(modalNewTask);
+    });
+
+    formNewTask.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('task-title').value.trim();
+      const date  = document.getElementById('task-date').value;
+      if (!title || !date) {
+        alert('Compila titolo e data.');
+        return;
+      }
+      try {
+        const response = await fetch('../../api/tasks/add.php', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, due_date: date, is_test: false })
+        });
+        if (response.status === 401) {
+          window.location.href = 'login.html';
+          return;
+        }
+        if (!response.ok) throw 'network-error';
+
+        const json = await response.json();
+        if (json.status === 'success') {
+          closeModal(modalNewTask);
+          loadTaskCount();
+          loadTasksList();
+          formNewTask.reset();
+        } else {
+          console.error('Errore creazione Task:', json.message);
+        }
+      } catch (err) {
+        console.error('Errore di rete new task:', err);
+      }
+    });
+  }
+
+  // 4) Gestione modifica/cancella Task e Test (delegation)
+  const taskListEl = document.querySelector('#section-tasks .item-list');
+  const testListEl = document.querySelector('#section-tests .item-list');
+
+  // Event delegation per Task
+  if (taskListEl) {
+    taskListEl.addEventListener('click', (e) => {
+      const item = e.target.closest('.item');
+      if (!item) return;
+      const taskId = item.dataset.id;
+      openModifyTaskModal(taskId);
+    });
+  }
+
+  // Event delegation per Test
+  if (testListEl) {
+    testListEl.addEventListener('click', (e) => {
+      const item = e.target.closest('.item');
+      if (!item) return;
+      const testId = item.dataset.id;
+      openModifyTestModal(testId);
+    });
   }
 });
 
-// Listener globali per aprire modali e popolare campi
+/* ----- Funzioni di caricamento lista e contatori ----- */
 
-document.addEventListener('click', event => {
-  // Modifica Task
-  if (event.target.matches('.btn-edit-task')) {
-    const id = event.target.dataset.id;
-    // Recupero il task dai dati già caricati in pagina (opzionale: fetch singolo)
-    fetch('../../api/tasks/list.php', {credentials:'include'})
-      .then(r => r.json())
-      .then(data => {
-        const task = data.tasks.find(t => t.id == id);
-        document.getElementById('edit-task-id').value = task.id;
-        document.getElementById('edit-title').value = task.title;
-        document.getElementById('edit-description').value = task.description || '';
-        document.getElementById('edit-due-date').value = task.due_date;
-        document.getElementById('edit-is-test').checked = task.is_test;
-        document.getElementById('edit-completed').checked = task.completed;
-        new bootstrap.Modal(document.getElementById('editTaskModal')).show();
-      });
+async function loadTaskCount() {
+  try {
+    const response = await fetch('../../api/tasks/list.php?type=task', {
+      method: 'GET',
+      credentials: 'include'
+    });
+    if (!response.ok) throw 'network-error';
+    const json = await response.json();
+    if (json.status === 'success' && Array.isArray(json.tasks)) {
+      document.querySelector('.count-tasks').textContent = json.tasks.length;
+    }
+  } catch (err) {
+    console.error('Errore loadTaskCount:', err);
   }
+}
 
-  // Modifica Sessione
-  if (event.target.matches('.btn-edit-session')) {
-    const id = event.target.dataset.id;
-    fetch('../../api/tasks/list.php', {credentials:'include'})
-      .then(r => r.json())
-      .then(data => {
-        const session = data.tasks
-          .flatMap(t => t.sessions || [])
-          .find(s => s.id == id);
-        document.getElementById('edit-session-id').value = session.id;
-        document.getElementById('edit-start-time').value = session.start_time.replace(' ', 'T');
-        document.getElementById('edit-end-time').value = session.end_time ? session.end_time.replace(' ', 'T') : '';
-        document.getElementById('edit-notes').value = session.notes || '';
-        new bootstrap.Modal(document.getElementById('editSessionModal')).show();
-      });
+async function loadTasksList() {
+  try {
+    const response = await fetch('../../api/tasks/list.php?type=task', {
+      method: 'GET',
+      credentials: 'include'
+    });
+    if (!response.ok) throw 'network-error';
+    const json = await response.json();
+    if (json.status === 'success') {
+      populateTaskList(json.tasks);
+    }
+  } catch (err) {
+    console.error('Errore loadTasksList:', err);
   }
-});
+}
+
+async function loadTestCount() {
+  try {
+    const response = await fetch('../../api/tasks/list.php?type=test', {
+      method: 'GET',
+      credentials: 'include'
+    });
+    if (!response.ok) throw 'network-error';
+    const json = await response.json();
+    if (json.status === 'success' && Array.isArray(json.tasks)) {
+      document.querySelector('.count-tests').textContent = json.tasks.length;
+    }
+  } catch (err) {
+    console.error('Errore loadTestCount:', err);
+  }
+}
+
+async function loadTestsList() {
+  try {
+    const response = await fetch('../../api/tasks/list.php?type=test', {
+      method: 'GET',
+      credentials: 'include'
+    });
+    if (!response.ok) throw 'network-error';
+    const json = await response.json();
+    if (json.status === 'success') {
+      populateTestList(json.tasks);
+    }
+  } catch (err) {
+    console.error('Errore loadTestsList:', err);
+  }
+}
+
+/* ----- Funzioni di popolamento DOM ----- */
+
+function populateTaskList(tasks) {
+  const ul = document.querySelector('#section-tasks .item-list');
+  if (!ul) return;
+  ul.innerHTML = '';
+  tasks.forEach(task => {
+    const li = document.createElement('li');
+    li.classList.add('item');
+    li.dataset.id = task.id;
+    li.innerHTML = `
+      <span class="item-checkbox">○</span>
+      <div class="item-content">
+        <p class="item-title">${task.title}</p>
+        <p class="item-date">Scadenza: ${task.due_date}</p>
+      </div>
+    `;
+    ul.appendChild(li);
+    const hr = document.createElement('hr');
+    hr.classList.add('divider');
+    ul.appendChild(hr);
+  });
+}
+
+function populateTestList(tests) {
+  const ul = document.querySelector('#section-tests .item-list');
+  if (!ul) return;
+  ul.innerHTML = '';
+  tests.forEach(test => {
+    const li = document.createElement('li');
+    li.classList.add('item');
+    li.dataset.id = test.id;
+    li.innerHTML = `
+      <div class="item-content">
+        <p class="item-title">${test.title}</p>
+        <p class="item-date">Data: ${test.due_date}</p>
+        <p class="item-desc">${test.description || ''}</p>
+      </div>
+    `;
+    ul.appendChild(li);
+    const hr = document.createElement('hr');
+    hr.classList.add('divider');
+    ul.appendChild(hr);
+  });
+}
+
+/* ----- Funzioni modali per modifica/cancella ----- */
+
+function openModifyTaskModal(taskId) {
+  // Crea popup dinamico per modificare o cancellare il task
+  const modal = document.createElement('div');
+  modal.classList.add('modal', 'show');
+  modal.innerHTML = `
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5>Modifica Task</h5>
+          <button class="btn-close" data-action="close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="form-modify-task">
+            <label for="edit-title">Titolo</label>
+            <input type="text" id="edit-title" value="" required>
+            <label for="edit-date">Data</label>
+            <input type="date" id="edit-date" required>
+            <button class="btn btn-confirm" type="submit">Salva</button>
+            <button class="btn btn-danger" id="btn-delete-task">Elimina</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // Carico i dati correnti del task
+  fetchTaskById(taskId).then(task => {
+    modal.querySelector('#edit-title').value = task.title;
+    modal.querySelector('#edit-date').value = task.due_date;
+  });
+
+  // Chiudi modal
+  modal.querySelector('[data-action="close"]').addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+
+  // Salva modifiche
+  modal.querySelector('#form-modify-task').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const updatedTitle = modal.querySelector('#edit-title').value.trim();
+    const updatedDate  = modal.querySelector('#edit-date').value;
+    try {
+      const response = await fetch('../../api/tasks/update.php', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: taskId, title: updatedTitle, due_date: updatedDate })
+      });
+      if (!response.ok) throw 'network-error';
+      const json = await response.json();
+      if (json.status === 'success') {
+        document.body.removeChild(modal);
+        loadTaskCount();
+        loadTasksList();
+      } else {
+        console.error('Errore update Task:', json.message);
+      }
+    } catch (err) {
+      console.error('Errore di rete update task:', err);
+    }
+  });
+
+  // Elimina task
+  modal.querySelector('#btn-delete-task').addEventListener('click', async (e) => {
+    e.preventDefault();
+    if (!confirm('Sei sicuro di voler eliminare questo task?')) return;
+    try {
+      const response = await fetch('../../api/tasks/delete.php', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: taskId })
+      });
+      if (!response.ok) throw 'network-error';
+      const json = await response.json();
+      if (json.status === 'success') {
+        document.body.removeChild(modal);
+        loadTaskCount();
+        loadTasksList();
+      } else {
+        console.error('Errore delete Task:', json.message);
+      }
+    } catch (err) {
+      console.error('Errore rete delete task:', err);
+    }
+  });
+}
+
+async function fetchTaskById(taskId) {
+  // API che restituisce un singolo task (opzionale; se non esiste, puoi ricavarlo
+  // filtrando la lista già caricata in memoria)
+  try {
+    const response = await fetch(`../../api/tasks/get.php?id=${taskId}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    if (!response.ok) throw 'network-error';
+    const json = await response.json();
+    return json.task;
+  } catch (err) {
+    console.error('Errore fetchTaskById:', err);
+    return { title: '', due_date: '' };
+  }
+}
+
+function openModifyTestModal(testId) {
+  // Simile a openModifyTaskModal, ma include anche descrizione
+  const modal = document.createElement('div');
+  modal.classList.add('modal', 'show');
+  modal.innerHTML = `
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5>Modifica Test</h5>
+          <button class="btn-close" data-action="close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="form-modify-test">
+            <label for="edit-test-title">Titolo</label>
+            <input type="text" id="edit-test-title" value="" required>
+            <label for="edit-test-date">Data</label>
+            <input type="date" id="edit-test-date" required>
+            <label for="edit-test-desc">Descrizione</label>
+            <textarea id="edit-test-desc" rows="3"></textarea>
+            <button class="btn btn-confirm" type="submit">Salva</button>
+            <button class="btn btn-danger" id="btn-delete-test">Elimina</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  fetchTestById(testId).then(test => {
+    modal.querySelector('#edit-test-title').value = test.title;
+    modal.querySelector('#edit-test-date').value = test.due_date;
+    modal.querySelector('#edit-test-desc').value = test.description || '';
+  });
+
+  modal.querySelector('[data-action="close"]').addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+
+  modal.querySelector('#form-modify-test').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const utitle = modal.querySelector('#edit-test-title').value.trim();
+    const udate  = modal.querySelector('#edit-test-date').value;
+    const udesc  = modal.querySelector('#edit-test-desc').value.trim();
+    try {
+      const response = await fetch('../../api/tasks/update.php', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: testId, title: utitle, due_date: udate, description: udesc, is_test: true })
+      });
+      if (!response.ok) throw 'network-error';
+      const json = await response.json();
+      if (json.status === 'success') {
+        document.body.removeChild(modal);
+        loadTestCount();
+        loadTestsList();
+      } else {
+        console.error('Errore update Test:', json.message);
+      }
+    } catch (err) {
+      console.error('Errore rete update test:', err);
+    }
+  });
+
+  modal.querySelector('#btn-delete-test').addEventListener('click', async (e) => {
+    e.preventDefault();
+    if (!confirm('Sei sicuro di voler eliminare questo test?')) return;
+    try {
+      const response = await fetch('../../api/tasks/delete.php', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: testId })
+      });
+      if (!response.ok) throw 'network-error';
+      const json = await response.json();
+      if (json.status === 'success') {
+        document.body.removeChild(modal);
+        loadTestCount();
+        loadTestsList();
+      } else {
+        console.error('Errore delete Test:', json.message);
+      }
+    } catch (err) {
+      console.error('Errore rete delete test:', err);
+    }
+  });
+}
+
+async function fetchTestById(testId) {
+  try {
+    const response = await fetch(`../../api/tasks/get.php?id=${testId}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    if (!response.ok) throw 'network-error';
+    const json = await response.json();
+    return json.task;
+  } catch (err) {
+    console.error('Errore fetchTestById:', err);
+    return { title: '', due_date: '', description: '' };
+  }
+}
+
+/* ----- Helpers per modal ----- */
+
+function openModal(modalEl) {
+  modalEl.classList.add('show');
+}
+
+function closeModal(modalEl) {
+  modalEl.classList.remove('show');
+}

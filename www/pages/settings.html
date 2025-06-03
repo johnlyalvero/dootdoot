@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IMPOSTAZIONI</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="dark-mode">
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <h1 class="page-title">IMPOSTAZIONI</h1>
+    </div>
+    <div class="header-right">
+      <!-- (eventuale pulsante per tornare indietro) -->
+      <a href="dashboard.html" class="btn-back" aria-label="Torna alla Dashboard">
+        ←
+      </a>
+    </div>
+  </header>
+
+  <!-- MAIN: Sezione Modifica Password -->
+  <main class="main settings-page">
+    <section class="change-password-section">
+      <h2 class="section-title">Modifica Password</h2>
+      <form id="form-change-password">
+        <div class="form-field">
+          <label for="old-password">Password Attuale</label>
+          <input type="password" id="old-password" name="old_password" required>
+        </div>
+        <div class="form-field">
+          <label for="new-password">Nuova Password</label>
+          <input type="password" id="new-password" name="new_password" required>
+        </div>
+        <div class="form-field">
+          <label for="confirm-password">Conferma Password</label>
+          <input type="password" id="confirm-password" name="confirm_password" required>
+        </div>
+        <button class="btn btn-primary" type="submit">Salva Modifiche</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- NAVBAR -->
+  <div id="nav-placeholder"></div>
+  <script>
+    fetch('../components/nav.html')
+    .then(r => r.text())
+    .then(html => document.getElementById('nav-placeholder').innerHTML = html);
+  </script>
+
+  <script src="../assets/js/settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PROFILO</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="dark-mode">
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <h1 class="page-title">PROFILO</h1>
+    </div>
+    <div class="header-right">
+      <!-- Pulsante per tornare alla Dashboard -->
+      <a href="dashboard.html" class="btn-back" aria-label="Torna alla Dashboard">
+        ←
+      </a>
+    </div>
+  </header>
+
+  <!-- MAIN: Dati utente e statistiche -->
+  <main class="main profile-page">
+    <!-- SALUTO -->
+    <section class="welcome-section">
+      <h2 class="welcome-text">Hey <span class="user-name">[NomeUtente]</span>!</h2>
+    </section>
+
+    <!-- INFO BOX -->
+    <section class="info-box">
+      <div class="info-left">
+        <!-- Placeholder immagine profilo -->
+        <div class="profile-img-large" data-src="path/to/avatar.jpg"></div>
+      </div>
+      <div class="info-right">
+        <h3>StudenteID</h3>
+        <p class="info-item"><strong>Nome:</strong> <span class="info-value">Mario Rossi</span></p>
+        <p class="info-item"><strong>Scuola:</strong> <span class="info-value">Liceo Scientifico</span></p>
+        <p class="info-item"><strong>Classe:</strong> <span class="info-value">5A</span></p>
+      </div>
+    </section>
+
+    <!-- STATISTICHE -->
+    <section class="stats-section">
+      <div class="stat-card">
+        <h4>Focus</h4>
+        <p class="stat-value">4.2/5</p>
+      </div>
+      <div class="stat-card">
+        <h4>Disciplina</h4>
+        <p class="stat-value">85%</p>
+      </div>
+      <div class="stat-card">
+        <h4>Efficienza</h4>
+        <p class="stat-value">72/100</p>
+      </div>
+      <div class="stat-card">
+        <h4>Dedizione</h4>
+        <p class="stat-value">🟢 Attivo</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="../assets/js/profile.js"></script>
+</body>
+</html>

@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Gestione della risposta
       if (response.ok && data.success) {
         // Successo: redirect alla dashboard (index.html)
-        window.location.href = 'index.html';
+          window.location.href = 'dashboard.html';
       } else {
         // Errore restituito dall'API
         messageDiv.innerHTML =

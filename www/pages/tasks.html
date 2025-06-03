@@ -1,81 +1,97 @@
-  <!-- Bottoni e modali per Edit/Delete -->
-  <!-- I pulsanti verranno inseriti dinamicamente da tasks.js per ogni task/session -->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TASK</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="dark-mode">
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <h1 class="page-title">TASK</h1>
+    </div>
+  </header>
 
-  <!-- Edit Task Modal -->
-  <div class="modal fade" id="editTaskModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Modifica Attività</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <form id="edit-task-form">
-            <input type="hidden" id="edit-task-id">
-            <div class="mb-3">
-              <label class="form-label">Titolo</label>
-              <input type="text" id="edit-title" class="form-control" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Descrizione</label>
-              <textarea id="edit-description" class="form-control"></textarea>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Data di scadenza</label>
-              <input type="date" id="edit-due-date" class="form-control" required>
-            </div>
-            <div class="form-check mb-3">
-              <input type="checkbox" id="edit-is-test" class="form-check-input">
-              <label class="form-check-label">È un test?</label>
-            </div>
-            <div class="form-check mb-3">
-              <input type="checkbox" id="edit-completed" class="form-check-input">
-              <label class="form-check-label">Completato</label>
-            </div>
+  <!-- MAIN -->
+  <main class="main task-page">
+    <!-- DUE PULSANTI: Task (N) e Test (N) -->
+    <section class="buttons-section">
+      <button class="btn btn-secondary btn-large" id="btn-view-tasks">
+        🔹 Task (<span class="count-tasks">0</span>)
+      </button>
+      <button class="btn btn-secondary btn-large" id="btn-view-tests">
+        🔹 Test (<span class="count-tests">0</span>)
+      </button>
+    </section>
+
+    <!-- SEZIONE CHECKLIST TASK (inizialmente visibile per default quando si clicca “Task”) -->
+    <section class="task-list-section" id="section-tasks">
+      <!-- Titolo secondario -->
+      <h2 class="section-title">I tuoi Task</h2>
+      <ul class="item-list">
+        <!-- Esempio di voce Task -->
+        <!--
+        <li class="item">
+          <span class="item-checkbox">○</span>
+          <div class="item-content">
+            <p class="item-title">Compiti Matematica</p>
+            <p class="item-date">Scadenza: 2025-06-15</p>
+          </div>
+          <hr class="divider">
+        </li>
+        -->
+      </ul>
+      <!-- Pulsante “New Task” -->
+      <button class="btn btn-primary" id="btn-new-task">New Task</button>
+
+      <!-- POP-UP NUOVO TASK (hidden fino a quando necessario) -->
+      <!-- 
+      <div class="modal new-task-modal" id="modal-new-task">
+        <div class="modal-content">
+          <h2>Crea Nuovo Task</h2>
+          <form id="form-new-task">
+            <label for="task-title">Titolo</label>
+            <input type="text" id="task-title" name="task_title" required>
+            <label for="task-date">Data</label>
+            <input type="date" id="task-date" name="task_date" required>
+            <button class="btn btn-primary" type="submit">Salva</button>
+            <button class="btn btn-secondary" id="btn-cancel-task">Annulla</button>
           </form>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-          <button type="button" id="save-task-btn" class="btn btn-primary">Salva</button>
-        </div>
       </div>
-    </div>
-  </div>
+      -->
+    </section>
 
-  <!-- Edit Session Modal (simile) -->
-  <div class="modal fade" id="editSessionModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Modifica Sessione</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <form id="edit-session-form">
-            <input type="hidden" id="edit-session-id">
-            <div class="mb-3">
-              <label class="form-label">Data e Ora Inizio</label>
-              <input type="datetime-local" id="edit-start-time" class="form-control" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Data e Ora Fine</label>
-              <input type="datetime-local" id="edit-end-time" class="form-control">
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Note</label>
-              <textarea id="edit-notes" class="form-control"></textarea>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-          <button type="button" id="save-session-btn" class="btn btn-primary">Salva</button>
-        </div>
-      </div>
-    </div>
-  </div>
+    <!-- SEZIONE LISTA TEST (nascosta di default, visibile quando si clicca “Test”) -->
+    <section class="test-list-section hidden" id="section-tests">
+      <h2 class="section-title">I tuoi Test</h2>
+      <ul class="item-list">
+        <!-- Esempio di voce Test -->
+        <!--
+        <li class="item">
+          <div class="item-content">
+            <p class="item-title">Verifica Fisica</p>
+            <p class="item-date">Data: 2025-06-20</p>
+            <p class="item-desc">Studio capitolo 3 e 4</p>
+          </div>
+          <hr class="divider">
+        </li>
+        -->
+      </ul>
+      <!-- (eventuale pulsante “New Test” o gestione separata) -->
+    </section>
+  </main>
 
-<script src="../assets/js/edit_task.js"></script>
-<script src="../assets/js/delete_task.js"></script>
-<script src="../assets/js/edit_session.js"></script>
-<script src="../assets/js/delete_session.js"></script>
+  <!-- NAVBAR -->
+  <div id="nav-placeholder"></div>
+  <script>
+    fetch('../components/nav.html')
+    .then(r => r.text())
+    .then(html => document.getElementById('nav-placeholder').innerHTML = html);
+  </script>
+
+  <script src="../assets/js/tasks.js"></script>
+</body>
+</html>
