@@ -1,44 +1,56 @@
+<!-- www/pages/settings.html -->
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>IMPOSTAZIONI</title>
-  <link rel="stylesheet" href="../assets/css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DOOTDOOT – Impostazioni</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
 </head>
 <body class="dark-mode">
-  <!-- HEADER -->
+  <!-- HEADER: titolo e ritorno alla dashboard -->
   <header class="header">
     <div class="header-left">
-      <h1 class="page-title">IMPOSTAZIONI</h1>
-    </div>
-    <div class="header-right">
-      <!-- (eventuale pulsante per tornare indietro) -->
-      <a href="dashboard.html" class="btn-back" aria-label="Torna alla Dashboard">
-        ←
-      </a>
+      <h1 class="app-title">IMPOSTAZIONI</h1>
     </div>
   </header>
 
-  <!-- MAIN: Sezione Modifica Password -->
   <main class="main settings-page">
-    <section class="change-password-section">
-      <h2 class="section-title">Modifica Password</h2>
-      <form id="form-change-password">
-        <div class="form-field">
-          <label for="old-password">Password Attuale</label>
-          <input type="password" id="old-password" name="old_password" required>
+    <!-- SEZIONE: Cambia Password -->
+    <section class="settings-section">
+      <h2>Cambia Password</h2>
+      <form id="change-password-form" class="form-settings">
+        <div class="form-group">
+          <label for="current-password">Password Attuale</label>
+          <input type="password" id="current-password" name="current_password" required />
         </div>
-        <div class="form-field">
+        <div class="form-group">
           <label for="new-password">Nuova Password</label>
-          <input type="password" id="new-password" name="new_password" required>
+          <input type="password" id="new-password" name="new_password" minlength="6" required />
         </div>
-        <div class="form-field">
-          <label for="confirm-password">Conferma Password</label>
-          <input type="password" id="confirm-password" name="confirm_password" required>
+        <div class="form-group">
+          <label for="confirm-password">Conferma Nuova Password</label>
+          <input type="password" id="confirm-password" name="confirm_password" minlength="6" required />
         </div>
-        <button class="btn btn-primary" type="submit">Salva Modifiche</button>
+        <div class="form-group">
+          <button type="submit" class="btn btn-primary">Aggiorna Password</button>
+        </div>
+        <div id="change-password-message" class="form-message"></div>
       </form>
+    </section>
+
+    <hr />
+
+    <!-- SEZIONE: Elimina Account -->
+    <section class="settings-section">
+      <h2>Elimina Account</h2>
+      <p class="warning-text">
+        Attenzione: questa operazione rimuoverà definitivamente il tuo account e tutti i dati associati.
+      </p>
+      <button id="btn-delete-account" class="btn btn-danger">
+        Elimina Account
+      </button>
+      <div id="delete-account-message" class="form-message"></div>
     </section>
   </main>
 
@@ -46,10 +58,12 @@
   <div id="nav-placeholder"></div>
   <script>
     fetch('../components/nav.html')
-    .then(r => r.text())
-    .then(html => document.getElementById('nav-placeholder').innerHTML = html);
+      .then((r) => r.text())
+      .then((html) => (document.getElementById('nav-placeholder').innerHTML = html))
+      .catch((err) => console.error(err));
   </script>
 
+  <!-- Script JS -->
   <script src="../assets/js/settings.js"></script>
 </body>
 </html>

@@ -165,10 +165,12 @@ async function loadTaskList() {
       return;
     }
     if (!response.ok) throw `http-error:${response.status}`;
+
     const json = await response.json();
     if (json.success === true && Array.isArray(json.tasks)) {
       const listContainer = document.querySelector('#section-tasks .item-list');
-      listContainer.innerHTML = '';
+      listContainer.innerHTML = ''; // pulisco la lista
+
       if (json.tasks.length === 0) {
         const li = document.createElement('li');
         li.classList.add('no-items');
@@ -176,22 +178,40 @@ async function loadTaskList() {
         listContainer.appendChild(li);
         return;
       }
+
       json.tasks.forEach(task => {
+        // Creo il <li> per questo task
         const li = document.createElement('li');
         li.classList.add('item');
         li.setAttribute('data-id', task.id);
 
+        // 1) Checkbox per completamento
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.classList.add('task-checkbox');
+        checkbox.setAttribute('data-id', task.id);
+        if (task.completed === 1) {
+          checkbox.checked = true;
+          li.classList.add('completed'); // opzione per styling barrato
+        }
+        // Listener per toggle completamento
+        checkbox.addEventListener('change', () => toggleTaskCompletion(task.id, checkbox.checked));
+
+        li.appendChild(checkbox);
+
+        // 2) Titolo del task
         const titleEl = document.createElement('div');
         titleEl.classList.add('item-title');
         titleEl.textContent = task.title;
         li.appendChild(titleEl);
 
+        // 3) Data di scadenza
         const dateEl = document.createElement('div');
         dateEl.classList.add('item-date');
         dateEl.textContent = formatDate(task.due_date);
         li.appendChild(dateEl);
 
-        // Icone modifica / elimina
+        // 4) Icone modifica / elimina
         const iconsContainer = document.createElement('div');
         iconsContainer.classList.add('icons-container');
 
@@ -208,6 +228,7 @@ async function loadTaskList() {
         iconsContainer.appendChild(deleteIcon);
 
         li.appendChild(iconsContainer);
+
         listContainer.appendChild(li);
       });
     } else {
@@ -217,6 +238,50 @@ async function loadTaskList() {
     console.error('Errore loadTaskList:', err);
   }
 }
+
+/* ===== FUNZIONE: Toggle completamento Task ===== */
+
+async function toggleTaskCompletion(taskId, isChecked) {
+  try {
+    // Costruisco il payload per update.php
+    const payload = {
+      id:        taskId,
+      completed: isChecked ? 1 : 0,
+      is_test:   0
+    };
+    const response = await fetch('../../api/tasks/update.php', {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (response.status === 401) {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (!response.ok) {
+      console.error('HTTP error toggleCompletion:', response.status);
+      return;
+    }
+    const json = await response.json();
+    if (!json.success) {
+      console.error('Errore API toggleCompletion:', json.error || json.message);
+      return;
+    }
+    // Se l’update ha avuto successo, aggiorno lo stile del <li>
+    const li = document.querySelector(`.item[data-id="${taskId}"]`);
+    if (li) {
+      if (isChecked) {
+        li.classList.add('completed');
+      } else {
+        li.classList.remove('completed');
+      }
+    }
+  } catch (err) {
+    console.error('Errore rete toggleCompletion:', err);
+  }
+}
+
 
 /* ===== FUNZIONE: Lista Test (con sessions) ===== */
 

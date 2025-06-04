@@ -613,3 +613,24 @@ input[type="password"]:focus,
   padding-top: 0.5rem;
   margin-top: 0.5rem;
 }
+
+/* Quando il <li> ha la classe .completed, barralo e rendilo meno evidente */
+.item.completed .item-title,
+.item.completed .item-date {
+  text-decoration: line-through;
+  color: #888; /* grigio chiaro */
+  opacity: 0.7;
+}
+
+/* Allarga l’area di click del checkbox */
+.task-checkbox {
+  margin-right: 0.75rem;
+  transform: scale(1.2);
+}
+
+/* Disabilita l’edit e delete per i task completati: */
+.item.completed .icon-edit,
+.item.completed .icon-delete {
+  opacity: 0.3;
+  pointer-events: none;
+}

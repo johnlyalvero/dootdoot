@@ -1,112 +1,165 @@
+<!-- www/pages/dashboard.html -->
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DOOTDOOT</title>
-  <!-- CSS dark mode (collegamento a style.css) -->
-  <link rel="stylesheet" href="../assets/css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DOOTDOOT – Dashboard</title>
+  <!-- Collegamento CSS -->
+  <link rel="stylesheet" href="../assets/css/style.css" />
 </head>
 <body class="dark-mode">
-  <!-- HEADER: titolo e avatar -->
+  <!-- HEADER: titolo, avatar e logout -->
   <header class="header">
     <div class="header-left">
       <h1 class="app-title">DOOTDOOT</h1>
     </div>
     <div class="header-right">
-      <!-- Bottone Profilo + Avatar -->
-      <button class="btn-profile" aria-label="Vai al Profilo">
-        <span class="profile-img"
-              data-src="../assets/img/logo.png"
-              style="background-image: url('../assets/img/default-avatar.png');">
-        </span>
+      <!-- Avatar cliccabile -->
+      <button id="btn-avatar" class="btn-profile" aria-label="Vai al Profilo">
+        <span class="profile-img" data-src="../assets/img/default-avatar.png"></span>
       </button>
-      <!-- Bottone Logout -->
-      <button class="btn btn-secondary" id="logout-btn" aria-label="Logout">
+      <!-- Logout -->
+      <button id="logout-btn" class="btn btn-secondary btn-logout">
         Logout
       </button>
     </div>
   </header>
 
-  <!-- MAIN: Timer -->
+  <!-- MAIN: Timer e statistiche rapide -->
   <main class="main timer-page">
-    <!-- TIMER SECTION -->
+    <!-- SEZIONE TIMER -->
     <section class="timer-section">
-      <!-- Orologio grande -->
-      <div class="timer-display" id="timer-display">
-        25:00
-      </div>
+      <!-- Display grande del timer -->
+      <div class="timer-display" id="timer-display">25:00</div>
 
-      <!-- BUTTON START -->
+      <!-- Pulsante Avvio / Give Up -->
       <button class="btn btn-primary timer-start" id="btn-start">
         Avvio
       </button>
+    </section>
 
-      <!-- POP-UP DURATA (inizialmente hidden) -->   
-      <div class="modal timer-modal" id="modal-duration">
-        <div class="modal-content">
-          <h2>Seleziona Durata</h2>
-          <input type="number" class="input-duration" id="input-duration"
-                 min="5" max="120" step="5" value="25"> minuti
+    <!-- SEZIONE STATISTICHE RAPIDE (opzionale) -->
+    <section class="stats-quick">
+      <div class="stat-card">
+        <div class="stat-label">Focus</div>
+        <div class="stat-value stat-focus">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Disciplina</div>
+        <div class="stat-value stat-disciplina">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Efficienza</div>
+        <div class="stat-value stat-efficiency">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Dedizione</div>
+        <div class="stat-value stat-dedication">—</div>
+      </div>
+    </section>
+
+    <!-- MODALE: Cambia Durata (hidden di default) -->
+    <div class="modal hidden" id="modal-duration">
+      <div class="modal-overlay"></div>
+      <div class="modal-content">
+        <h2>Seleziona Durata</h2>
+        <div class="form-group">
+          <input
+            type="number"
+            class="input-duration"
+            id="input-duration"
+            min="5"
+            max="120"
+            step="5"
+            value="25"
+          />
+         &nbsp;minuti
+        </div>
+        <div class="modal-buttons">
           <button class="btn btn-primary" id="btn-set-duration">Imposta</button>
           <button class="btn btn-secondary" id="btn-cancel-duration">Annulla</button>
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- POP-UP RIEPILOGO TASK/SESSIONI (hidden fino al termine) -->
-    <div class="modal summary-modal" id="modal-summary">
+    <!-- MODALE: Riepilogo Task Pendenti (hidden di default) -->
+    <div class="modal hidden" id="modal-summary">
+      <div class="modal-overlay"></div>
       <div class="modal-content">
-        <h2>Riepilogo</h2>
+        <h2>Riepilogo Task</h2>
         <p>Task ancora da completare:</p>
-        <ul class="pending-tasks">
-          <li>Titolo Task 1 - Data</li>
-          <li>Titolo Task 2 - Data</li>
-        </ul>
-        <p>Sessioni ancora da svolgere:</p>
-        <ul class="pending-sessions">
-          <li>Sessione 7 giorni prima</li>
-          <li>Sessione 6 giorni prima</li>
+        <ul class="pending-tasks" id="summary-pending-tasks">
+          <!-- I <li> verranno inseriti dinamicamente -->
         </ul>
         <button class="btn btn-primary" id="btn-close-summary">Chiudi</button>
       </div>
     </div>
 
-    <!-- POP-UP FEEDBACK (hidden fino al completamento) -->
-    <div class="modal feedback-modal" id="modal-feedback">
+    <!-- MODALE: Feedback Post-Sessione (hidden di default) -->
+    <div class="modal hidden" id="modal-feedback">
+      <div class="modal-overlay"></div>
       <div class="modal-content">
         <h2>Feedback Sessione</h2>
         <form id="feedback-form">
           <!-- Focus -->
-          <label for="feedback-focus">Focus (1-5):</label>
-          <input type="range" id="feedback-focus" name="feedback_focus" min="1" max="5" value="3">
+          <div class="form-group">
+            <label for="feedback-focus">Focus (1-5):</label>
+            <input
+              type="range"
+              id="feedback-focus"
+              name="feedback_focus"
+              min="1"
+              max="5"
+              value="3"
+            />
+          </div>
           <!-- Utilità -->
-          <label for="feedback-utilita">Utilità:</label>
-          <select id="feedback-utilita" name="feedback_utilita">
-            <option value="1">Per nulla utile</option>
-            <option value="2">Poco utile</option>
-            <option value="3" selected>Abbastanza utile</option>
-            <option value="4">Molto utile</option>
-            <option value="5">Essenziale</option>
-          </select>
+          <div class="form-group">
+            <label for="feedback-utilita">Utilità:</label>
+            <select id="feedback-utilita" name="feedback_utilita">
+              <option value="1">Per nulla utile</option>
+              <option value="2">Poco utile</option>
+              <option value="3" selected>Abbastanza utile</option>
+              <option value="4">Molto utile</option>
+              <option value="5">Essenziale</option>
+            </select>
+          </div>
           <!-- Distrazioni -->
-          <label for="feedback-distrazioni">Distrazioni:</label>
-          <textarea id="feedback-distrazioni" name="feedback_distrazioni" rows="3"
-                    placeholder="Cosa ti ha distratto?"></textarea>
-          <button type="submit" class="btn btn-primary">Invia Feedback</button>
+          <div class="form-group">
+            <label for="feedback-distrazioni">Distrazioni:</label>
+            <textarea
+              id="feedback-distrazioni"
+              name="feedback_distrazioni"
+              rows="3"
+              placeholder="Cosa ti ha distratto?"
+            ></textarea>
+          </div>
+          <div class="modal-buttons">
+            <button type="submit" class="btn btn-primary">Invia Feedback</button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="btn-cancel-feedback"
+            >
+              Annulla
+            </button>
+          </div>
         </form>
       </div>
     </div>
   </main>
 
-  <!-- NAVBAR -->
+  <!-- NAVBAR (incluso da componente esterno) -->
   <div id="nav-placeholder"></div>
   <script>
     fetch('../components/nav.html')
-    .then(r => r.text())
-    .then(html => document.getElementById('nav-placeholder').innerHTML = html);
+      .then((r) => r.text())
+      .then((html) => (document.getElementById('nav-placeholder').innerHTML = html))
+      .catch((err) => console.error(err));
   </script>
 
+  <!-- Script JS -->
   <script src="../assets/js/dashboard.js"></script>
 </body>
 </html>
